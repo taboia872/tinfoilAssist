@@ -148,10 +148,10 @@ public class MainActivity extends Activity {
         registerForContextMenu(chatWebView);
         restrictedButton = findViewById(R.id.restricted);
 
-        // Cookie security settings
+        // Cookie security settings - Allow cookies for domain storage and authentication persistence
         chatCookieManager = CookieManager.getInstance();
         chatCookieManager.setAcceptCookie(true);
-        chatCookieManager.setAcceptThirdPartyCookies(chatWebView, false);
+        chatCookieManager.setAcceptThirdPartyCookies(chatWebView, true);
 
         initURLs();
 
@@ -208,7 +208,6 @@ public class MainActivity extends Activity {
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
-                // Inject privacy hardening JavaScript as early as possible
                 view.loadUrl(HARDENING_JS);
             }
 
@@ -216,28 +215,45 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 view.loadUrl(HARDENING_JS);
+                if (chatCookieManager != null) {
+                    chatCookieManager.flush();
+                }
             }
 
             @Override
             public WebResourceResponse shouldInterceptRequest(final WebView view, WebResourceRequest request) {
                 if (!restricted) return null;
 
-                if (request.getUrl().toString().equals("about:blank")) {
+                String urlStr = request.getUrl().toString();
+                String scheme = request.getUrl().getScheme();
+
+                // Essential: Allow blob:, data:, and about: schemes used by WebWorkers, IndexedDB, and Local Storage
+                if (scheme != null && ("blob".equalsIgnoreCase(scheme) || "data".equalsIgnoreCase(scheme) || "about".equalsIgnoreCase(scheme))) {
                     return null;
                 }
-                if (!request.getUrl().toString().startsWith("https://")) {
-                    Log.d(TAG, "[shouldInterceptRequest][NON-HTTPS] Blocked: " + request.getUrl().toString());
+
+                if (urlStr.equals("about:blank")) {
+                    return null;
+                }
+
+                if (scheme == null || !"https".equalsIgnoreCase(scheme)) {
+                    Log.d(TAG, "[shouldInterceptRequest][NON-HTTPS] Blocked: " + urlStr);
                     return new WebResourceResponse("text/javascript", "UTF-8", null);
                 }
+
                 boolean allowed = false;
-                for (String domain : allowedDomains) {
-                    if (request.getUrl().getHost() != null && request.getUrl().getHost().endsWith(domain)) {
-                        allowed = true;
-                        break;
+                String host = request.getUrl().getHost();
+                if (host != null) {
+                    for (String domain : allowedDomains) {
+                        if (host.endsWith(domain)) {
+                            allowed = true;
+                            break;
+                        }
                     }
                 }
+
                 if (!allowed) {
-                    Log.d(TAG, "[shouldInterceptRequest][BLOCKED] " + request.getUrl().getHost());
+                    Log.d(TAG, "[shouldInterceptRequest][BLOCKED] " + host);
                     return new WebResourceResponse("text/javascript", "UTF-8", null);
                 }
                 return null;
@@ -247,22 +263,35 @@ public class MainActivity extends Activity {
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 if (!restricted) return false;
 
-                if (request.getUrl().toString().equals("about:blank")) {
+                String urlStr = request.getUrl().toString();
+                String scheme = request.getUrl().getScheme();
+
+                if (scheme != null && ("blob".equalsIgnoreCase(scheme) || "data".equalsIgnoreCase(scheme) || "about".equalsIgnoreCase(scheme))) {
                     return false;
                 }
-                if (!request.getUrl().toString().startsWith("https://")) {
-                    Log.d(TAG, "[shouldOverrideUrlLoading][NON-HTTPS] Blocked: " + request.getUrl().toString());
+
+                if (urlStr.equals("about:blank")) {
+                    return false;
+                }
+
+                if (scheme == null || !"https".equalsIgnoreCase(scheme)) {
+                    Log.d(TAG, "[shouldOverrideUrlLoading][NON-HTTPS] Blocked: " + urlStr);
                     return true;
                 }
+
                 boolean allowed = false;
-                for (String domain : allowedDomains) {
-                    if (request.getUrl().getHost() != null && request.getUrl().getHost().endsWith(domain)) {
-                        allowed = true;
-                        break;
+                String host = request.getUrl().getHost();
+                if (host != null) {
+                    for (String domain : allowedDomains) {
+                        if (host.endsWith(domain)) {
+                            allowed = true;
+                            break;
+                        }
                     }
                 }
+
                 if (!allowed) {
-                    Log.d(TAG, "[shouldOverrideUrlLoading][BLOCKED] " + request.getUrl().getHost());
+                    Log.d(TAG, "[shouldOverrideUrlLoading][BLOCKED] " + host);
                     return true;
                 }
                 return false;
@@ -292,12 +321,12 @@ public class MainActivity extends Activity {
             if (dm != null) dm.enqueue(request);
         });
 
-        // Configure WebSettings for performance, cache & privacy
+        // Configure WebSettings for full local storage (LocalStorage, IndexedDB, Database)
         chatWebSettings = chatWebView.getSettings();
         chatWebSettings.setJavaScriptEnabled(true);
-        chatWebSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
         chatWebSettings.setDomStorageEnabled(true);
         chatWebSettings.setDatabaseEnabled(true);
+        chatWebSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
 
         // Security / Hardening overrides
         chatWebSettings.setAllowContentAccess(false);
@@ -341,9 +370,10 @@ public class MainActivity extends Activity {
     }
 
     private static void initURLs() {
-        // Domains permitted for Tinfoil Chat and authentication
+        // Domains permitted for Tinfoil Chat, Clerk, and local assets
         allowedDomains.add("tinfoil.sh");
         allowedDomains.add("chat.tinfoil.sh");
+        allowedDomains.add("clerk.tinfoil.sh");
         allowedDomains.add("verification-center.tinfoil.sh");
         allowedDomains.add("clerk.accounts.dev");
         allowedDomains.add("tinfoilsh.github.io");
