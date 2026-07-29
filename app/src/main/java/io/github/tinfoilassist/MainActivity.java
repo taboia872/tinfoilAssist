@@ -125,14 +125,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         restricted = true;
 
-        // Separate WebView data directory for isolation (sandboxing)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            try {
-                WebView.setDataDirectorySuffix("tinfoil_chat");
-            } catch (Exception e) {
-                Log.w(TAG, "setDataDirectorySuffix failed: " + e.getMessage());
-            }
-        }
+
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             setTheme(android.R.style.Theme_DeviceDefault_DayNight);
