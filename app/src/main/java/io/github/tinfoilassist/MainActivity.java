@@ -42,8 +42,6 @@ import android.widget.Toast;
 
 import androidx.webkit.URLUtilCompat;
 
-import org.woheller69.freeDroidWarn.FreeDroidWarn;
-
 import java.util.ArrayList;
 
 public class MainActivity extends Activity {
@@ -338,7 +336,6 @@ public class MainActivity extends Activity {
         chatWebSettings.setUserAgentString(modUserAgent());
 
         chatWebView.loadUrl(URL_TO_LOAD);
-        FreeDroidWarn.showWarningOnUpgrade(this, BuildConfig.VERSION_CODE);
     }
 
     @Override
