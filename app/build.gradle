@@ -1,0 +1,36 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    compileSdk 35
+    namespace 'io.github.tinfoilassist'
+    android.buildFeatures.buildConfig true
+    defaultConfig {
+        applicationId "io.github.tinfoilassist"
+        minSdk 21
+        targetSdk 35
+        versionCode 100
+        versionName "1.0.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    
+    lintOptions {
+        disable "MissingTranslation"
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+    implementation 'com.github.woheller69:FreeDroidWarn:+'
+}
