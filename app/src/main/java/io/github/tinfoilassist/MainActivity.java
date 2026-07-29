@@ -367,14 +367,31 @@ public class MainActivity extends Activity {
     }
 
     private static void initURLs() {
-        // Domains permitted for Tinfoil Chat, Clerk, and local assets
+        // Domains permitted for Tinfoil Chat, Clerk, and authentication providers
         allowedDomains.add("tinfoil.sh");
         allowedDomains.add("chat.tinfoil.sh");
         allowedDomains.add("clerk.tinfoil.sh");
         allowedDomains.add("verification-center.tinfoil.sh");
         allowedDomains.add("clerk.accounts.dev");
+        allowedDomains.add("clerk.com"); // Clerk central domain
         allowedDomains.add("tinfoilsh.github.io");
         allowedDomains.add("cdn.jsdelivr.net");
+
+        // Google Authentication
+        allowedDomains.add("google.com");
+        allowedDomains.add("accounts.google.com");
+        allowedDomains.add("gstatic.com");
+        allowedDomains.add("googleusercontent.com");
+        allowedDomains.add("googleapis.com");
+
+        // Microsoft Authentication
+        allowedDomains.add("microsoft.com");
+        allowedDomains.add("microsoftonline.com");
+        allowedDomains.add("live.com");
+
+        // Apple Authentication
+        allowedDomains.add("apple.com");
+        allowedDomains.add("appleid.apple.com");
     }
 
     @Override
