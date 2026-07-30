@@ -10,12 +10,67 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- Toggle button (arrow down) — reveals the menu -->
     <ImageButton
-        android:id="@+id/restricted"
+        android:id="@+id/btnMenuToggle"
         android:background="@drawable/button_background"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
-        android:src="@drawable/restricted" />
+        android:layout_alignParentTop="true"
+        android:padding="8dp"
+        android:src="@drawable/ic_arrow_down"
+        android:contentDescription="Menu" />
+
+    <!-- Expandable menu bar — hidden by default, slides down -->
+    <LinearLayout
+        android:id="@+id/menuBar"
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_below="@id/btnMenuToggle"
+        android:background="@drawable/button_background"
+        android:gravity="center_vertical"
+        android:padding="4dp"
+        android:visibility="gone">
+
+        <ImageButton
+            android:id="@+id/btnReload"
+            android:background="?android:attr/selectableItemBackground"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_reload"
+            android:contentDescription="Reload" />
+
+        <ImageButton
+            android:id="@+id/btnRestrict"
+            android:background="?android:attr/selectableItemBackground"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_lock"
+            android:contentDescription="Toggle restricted mode" />
+
+        <ImageButton
+            android:id="@+id/btnClearData"
+            android:background="?android:attr/selectableItemBackground"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_delete"
+            android:contentDescription="Clear all data" />
+
+        <ImageButton
+            android:id="@+id/btnAbout"
+            android:background="?android:attr/selectableItemBackground"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_info"
+            android:contentDescription="About" />
+
+    </LinearLayout>
 
 </RelativeLayout>

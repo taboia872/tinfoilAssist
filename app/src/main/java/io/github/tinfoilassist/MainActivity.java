@@ -6,10 +6,12 @@ import static android.webkit.WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -38,6 +40,7 @@ import android.webkit.WebStorage;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.webkit.URLUtilCompat;
@@ -47,7 +50,13 @@ import java.util.ArrayList;
 public class MainActivity extends Activity {
 
     private WebView chatWebView = null;
-    private ImageButton restrictedButton = null;
+    private ImageButton btnMenuToggle = null;
+    private ImageButton btnReload = null;
+    private ImageButton btnRestrict = null;
+    private ImageButton btnClearData = null;
+    private ImageButton btnAbout = null;
+    private LinearLayout menuBar = null;
+    private boolean menuVisible = false;
     private WebSettings chatWebSettings = null;
     private CookieManager chatCookieManager = null;
     private final Context context = this;
@@ -88,37 +97,82 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
 
-        if (restricted) restrictedButton.setImageDrawable(getDrawable(R.drawable.restricted));
-        else restrictedButton.setImageDrawable(getDrawable(R.drawable.unrestricted));
+        updateRestrictIcon();
 
-        restrictedButton.setOnClickListener(v -> {
-            restricted = !restricted;
-            if (restricted) {
-                restrictedButton.setImageDrawable(getDrawable(R.drawable.restricted));
-                Toast.makeText(context, R.string.urls_restricted, Toast.LENGTH_SHORT).show();
-                chatWebSettings.setUserAgentString(modUserAgent());
-            } else {
-                restrictedButton.setImageDrawable(getDrawable(R.drawable.unrestricted));
-                Toast.makeText(context, R.string.all_urls, Toast.LENGTH_SHORT).show();
-                chatWebSettings.setUserAgentString(modUserAgent());
-            }
+        // Toggle menu visibility on arrow button click
+        btnMenuToggle.setOnClickListener(v -> {
+            menuVisible = !menuVisible;
+            menuBar.setVisibility(menuVisible ? View.VISIBLE : View.GONE);
+        });
+
+        // Reload page
+        btnReload.setOnClickListener(v -> {
             chatWebView.reload();
+            hideMenu();
+        });
+
+        // Toggle restricted mode
+        btnRestrict.setOnClickListener(v -> {
+            restricted = !restricted;
+            updateRestrictIcon();
+            if (restricted) {
+                Toast.makeText(context, R.string.urls_restricted, Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(context, R.string.all_urls, Toast.LENGTH_SHORT).show();
+            }
+            chatWebSettings.setUserAgentString(modUserAgent());
+            chatWebView.reload();
+            hideMenu();
+        });
+
+        // Clear all data with confirmation dialog
+        btnClearData.setOnClickListener(v -> {
+            new AlertDialog.Builder(context)
+                .setTitle(R.string.confirm_clear_title)
+                .setMessage(R.string.confirm_clear_data)
+                .setPositiveButton(R.string.confirm_yes, (dialog, which) -> {
+                    resetChat();
+                    Toast.makeText(context, R.string.data_cleared, Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton(R.string.confirm_no, null)
+                .show();
+            hideMenu();
+        });
+
+        // About dialog
+        btnAbout.setOnClickListener(v -> {
+            new AlertDialog.Builder(context)
+                .setTitle(R.string.about_title)
+                .setMessage(R.string.about_message)
+                .setPositiveButton(R.string.dialog_OK_button, null)
+                .show();
+            hideMenu();
         });
 
         swipeTouchListener = new SwipeTouchListener(context) {
             @Override
             public void onSwipeBottom() {
                 if (!chatWebView.canScrollVertically(0)) {
-                    restrictedButton.setVisibility(View.VISIBLE);
+                    btnMenuToggle.setVisibility(View.VISIBLE);
                 }
             }
             @Override
             public void onSwipeTop() {
-                restrictedButton.setVisibility(View.GONE);
+                btnMenuToggle.setVisibility(View.GONE);
+                hideMenu();
             }
         };
 
         chatWebView.setOnTouchListener(swipeTouchListener);
+    }
+
+    private void updateRestrictIcon() {
+        btnRestrict.setImageDrawable(getDrawable(restricted ? R.drawable.ic_lock : R.drawable.ic_lock_open));
+    }
+
+    private void hideMenu() {
+        menuVisible = false;
+        menuBar.setVisibility(View.GONE);
     }
 
     @Override
@@ -144,7 +198,12 @@ public class MainActivity extends Activity {
 
         chatWebView = findViewById(R.id.chatWebView);
         registerForContextMenu(chatWebView);
-        restrictedButton = findViewById(R.id.restricted);
+        btnMenuToggle = findViewById(R.id.btnMenuToggle);
+        btnReload = findViewById(R.id.btnReload);
+        btnRestrict = findViewById(R.id.btnRestrict);
+        btnClearData = findViewById(R.id.btnClearData);
+        btnAbout = findViewById(R.id.btnAbout);
+        menuBar = findViewById(R.id.menuBar);
 
         // Cookie security settings - Allow cookies for domain storage and authentication persistence
         chatCookieManager = CookieManager.getInstance();

@@ -11,4 +11,12 @@
     <string name="all_urls">All URLs allowed</string>
     <string name="urls_restricted">URLs restricted</string>
     <string name="url_copied">URL copied</string>
+    <!-- Menu -->
+    <string name="confirm_clear_data">Clear all data? This will erase cookies, cache, history, and local storage. Your Tinfoil account login will be lost.</string>
+    <string name="confirm_clear_title">Clear all data</string>
+    <string name="confirm_yes">Clear</string>
+    <string name="confirm_no">Cancel</string>
+    <string name="data_cleared">All data cleared. Reloading…</string>
+    <string name="about_title">About TinfoilAssist</string>
+    <string name="about_message">TinfoilAssist v1.0.0\n\nA hardened WebView wrapper for Tinfoil Chat.\n\nBased on gptassist by @woheller69 and geminiAssist by @AcideFluorhydrique.\n\nBuilt by vibe coding — IA wrote the code, a human directed the strategy.\n\nLicense: GPL-3.0</string>
 </resources>
