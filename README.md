@@ -1,32 +1,140 @@
 # TinfoilAssist
 
-**TinfoilAssist** is a hardened, privacy-first Android WebView wrapper designed specifically for accessing [Tinfoil Chat](https.chat.tinfoil.sh).
+Um wrapper WebView Android endurecido para o [Tinfoil Chat](https://chat.tinfoil.sh), com foco em privacidade máxima.
 
-It is based on the privacy-focused design of `gptassist` by `@woheller69`, enhanced with hardware API hardening, domain sandboxing, and request filtering.
-
----
-
-## 🛡️ Privacy & Security Features
-
-* **Hardware & Sensor API Blocking**: Injects early JavaScript overrides to block `navigator.getBattery`, `DeviceOrientationEvent`, `DeviceMotionEvent`, `vibrate`, `NetworkInformation`, and `geolocation`.
-* **Domain Whitelisting**: Intercepts all network traffic (`shouldInterceptRequest` & `shouldOverrideUrlLoading`) to strictly allow requests only to `tinfoil.sh`, `clerk.accounts.dev`, `cdn.jsdelivr.net`, and related assets.
-* **WebView Telemetry Opt-Out**: Includes `<meta-data android:name="android.webkit.WebView.MetricsOptOut" android:value="true" />` to block Google WebView telemetry.
-* **Isolated Data Sandboxing**: Configures `WebView.setDataDirectorySuffix("tinfoil_chat")` on Android 9+ to prevent cross-app profile sharing.
-* **Linux Desktop User-Agent**: Spoofs `Mozilla/5.0 (X11; Linux ...)` to avoid mobile fingerprinting.
-* **No Third-Party Trackers**: 0 analytics, 0 SDKs, 0 ads.
+> **Aviso:** Este é um projeto independente, não oficial, não afiliado à Tinfoil Inc.
 
 ---
 
-## 🛠️ Building
+## 🤔 O que é?
 
-Open this project in **Android Studio** or build from the command line:
+O Tinfoil Chat é um serviço de IA com privacidade verificável — suas inferências rodam em enclaves criptográficos. Mas o navegador, por si só, já vaza muita coisa: bateria, orientação do dispositivo, geolocalização, User-Agent, cookies de terceiros, telemetria do WebView...
+
+O **TinfoilAssist** é um app Android minimalista que encapsula o Tinfoil Chat num WebView trancado. Ele não é um navegador — é uma **janela blindada** que só deixa passar o estritamente necessário para o Tinfoil funcionar.
+
+---
+
+## 🛡️ Como protege sua privacidade
+
+### Bloqueio de APIs de hardware
+Via injeção de JavaScript no `onPageStarted` e `onPageFinished`, as seguintes APIs são neutralizadas antes de qualquer script do site rodar:
+
+| API | O que faz sem bloqueio | O que o app faz |
+|-----|------------------------|-----------------|
+| `navigator.getBattery` | Revela nível de bateria e status de carregamento | Retorna `Promise.reject()` |
+| `DeviceOrientationEvent` | Acesso ao giroscópio | `undefined` |
+| `DeviceMotionEvent` | Acesso ao acelerômetro | `undefined` |
+| `navigator.vibrate` | Vibração do dispositivo | Retorna `false` |
+| `navigator.connection` | Tipo de conexão (WiFi/4G/etc) | `undefined` |
+| `navigator.geolocation` | Localização GPS | Retorna erro `PERMISSION_DENIED` |
+
+### Whitelist de domínios
+Todo tráfego de rede passa por `shouldInterceptRequest` e `shouldOverrideUrlLoading`. Apenas estes domínios são permitidos:
+
+- `tinfoil.sh`, `chat.tinfoil.sh`, `clerk.tinfoil.sh`, `verification-center.tinfoil.sh`
+- `clerk.accounts.dev`, `clerk.com` — autenticação Clerk
+- `tinfoilsh.github.io`
+- `cdn.jsdelivr.net` — CDN de assets
+- `google.com`, `accounts.google.com`, `gstatic.com`, `googleusercontent.com`, `googleapis.com` — login Google
+- `microsoft.com`, `microsoftonline.com`, `live.com` — login Microsoft
+- `apple.com`, `appleid.apple.com` — login Apple
+
+Tudo o que não estiver na lista é bloqueado com uma resposta vazia.
+
+### Outros mecanismos
+
+- **User-Agent spoofed**: `Mozilla/5.0 (X11; Linux x86_64)` — esconde que é mobile, evita fingerprinting de dispositivo
+- **WebView Metrics Opt-Out**: `<meta-data android:name="android.webkit.WebView.MetricsOptOut" android:value="true" />` desativa telemetria do WebView do Google
+- **HTTPS only**: conexões não-HTTPS são bloqueadas por padrão
+- **Sandbox de dados**: `setDataDirectorySuffix("tinfoil_chat")` isola os dados do WebView do resto do sistema
+- **Sem telemetria própria**: zero analytics, zero SDKs de rastreamento, zero ads
+- **Cookies flush em onPause/onPageFinished**: garante que cookies de sessão sejam persistidos
+
+---
+
+## ⚠️ Pontos fracos / limitações
+
+Por ser um WebView, este app herda algumas limitações estruturais:
+
+1. **WebView ≠ navegador completo**: O `WebView` do Android é baseado no Chromium, mas é uma versão controlada pelo Google. Atualizações do WebView podem mudar comportamentos sem aviso.
+
+2. **Injeção de JS é temporária**: O bloqueio de APIs via JavaScript roda a cada `onPageStarted`/`onPageFinished`, mas existe uma janela mínima entre o carregamento da página e a execução do script onde as APIs estariam disponíveis. Um script suficientemente rápido poderia teoricamente ler os valores antes do bloqueio.
+
+3. **Whitelist é estática**: Os domínios são hardcoded no `MainActivity.java`. Se o Tinfoil adicionar um novo CDN ou serviço de autenticação, o app precisa ser atualizado.
+
+4. **Sem Service Worker**: O WebView não suporta Service Workers por padrão, o que pode afetar funcionalidades offline do Tinfoil Chat.
+
+5. **Permissões de microfone**: O app precisa de `RECORD_AUDIO` para o recurso de voz do Tinfoil. Embora só seja concedido sob demanda, a permissão existe no manifest.
+
+6. **User-Agent identifica Linux**: Embora esconda que é mobile, o UA `X11; Linux x86_64` é incomum para acessar um chat de IA, o que pode tecnicamente ser usado para fingerprinting reverso.
+
+---
+
+## 🔧 Como funciona (tecnicamente)
+
+```
+┌─────────────────────────────────────┐
+│         MainActivity (Activity)     │
+│  ┌───────────────────────────────┐  │
+│  │     WebView (chat.tinfoil.sh)  │  │
+│  │                               │  │
+│  │  onPageStarted → HARDENING_JS │  │ ← Bloqueia APIs de hardware
+│  │  onPageFinished → HARDENING_JS│  │
+│  │                               │  │
+│  │  shouldInterceptRequest       │  │ ← Whitelist de domínios
+│  │  shouldOverrideUrlLoading     │  │
+│  │  onPermissionRequest         │  │ ← Só permite áudio sob demanda
+│  └───────────────────────────────┘  │
+│                                     │
+│  SwipeTouchListener → toggle button │
+│  CookieManager.flush() em onPause   │
+│  WebStorage + IndexedDB habilitados │
+└─────────────────────────────────────┘
+```
+
+O app carrega `https://chat.tinfoil.sh/` num WebView em tela cheia, sem barra de título. Um botão no canto superior direito (revelado ao deslizar para baixo) permite alternar entre o modo restrito (whitelist ativa) e irrestrito (todos os domínios permitidos).
+
+---
+
+## 🏗️ Compilando
+
+O build é feito via GitHub Actions — não é necessário ter o Android SDK instalado localmente. Cada push para `main` dispara o workflow que compila o APK e publica como artifact.
+
+Para compilar manualmente:
+
+```bash
+./gradlew assembleDebug
+```
+
+Para compilar release (requer keystore):
 
 ```bash
 ./gradlew assembleRelease
 ```
 
+O APK de debug fica em `app/build/outputs/apk/debug/app-debug.apk`.
+
 ---
 
-## 📜 License
+## 📝 Sobre o desenvolvimento
 
-GNU General Public License v3.0 (GPL-3.0)
+Este projeto foi feito por **vibe coding** — a maior parte do código foi escrita por IA (com modelos como DeepSeek, Gemini e GLM) através de iteração conversacional. Mas a IA não fez tudo sozinha: cada decisão arquitetural, cada trade-off de segurança, cada correção de build e cada investigação de comportamento exigiu **direção e estratégia humana**. A IA era a mãos no teclado; o humano era o arquiteto.
+
+O processo incluiu análise de projetos similares, engenharia reversa do comportamento de armazenamento do Tinfoil Chat (que se mostrou mais sutil do que parecia), e múltiplas iterações de build-quebrado-debug-push no GitHub Actions.
+
+---
+
+## 🙏 Créditos e projetos base
+
+Este app é um fork adaptado de:
+
+- **[gptassist](https://github.com/woheller69/gptassist)** por [@woheller69](https://github.com/woheller69) — wrapper WebView para ChatGPT com boa base de privacidade
+- **[geminiAssist](https://github.com/AcideFluorhydrique/geminiAssist)** por [@AcideFluorhydrique](https://github.com/AcideFluorhydrique) — wrapper WebView para Google Gemini
+
+Ambos inspiraram a estrutura básica do WebView, a whitelist de domínios, o sandbox de dados e o spoofing de User-Agent. O TinfoilAssist adiciona bloqueio de APIs de hardware e endurecimento adicional focado no Tinfoil Chat.
+
+---
+
+## 📜 Licença
+
+GNU General Public License v3.0 (GPL-3.0) — veja [LICENSE](LICENSE).
