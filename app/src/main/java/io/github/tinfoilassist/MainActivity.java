@@ -227,13 +227,16 @@ public class MainActivity extends Activity {
                     return null;
                 }
 
+                // DIAGNOSTIC MODE: Log but do NOT block anything.
+                // We need to determine if the whitelist is preventing Service Worker / IndexedDB persistence.
+                // Once we confirm persistence works, we can re-enable blocking.
                 if (scheme == null || !"https".equalsIgnoreCase(scheme)) {
-                    Log.d(TAG, "[shouldInterceptRequest][NON-HTTPS] Blocked: " + urlStr);
-                    return new WebResourceResponse("text/javascript", "UTF-8", null);
+                    Log.d(TAG, "[shouldInterceptRequest][NON-HTTPS] Would have blocked (diagnostic): " + urlStr);
+                    return null;
                 }
 
-                boolean allowed = false;
                 String host = request.getUrl().getHost();
+                boolean allowed = false;
                 if (host != null) {
                     for (String domain : allowedDomains) {
                         if (host.endsWith(domain)) {
@@ -244,47 +247,15 @@ public class MainActivity extends Activity {
                 }
 
                 if (!allowed) {
-                    Log.d(TAG, "[shouldInterceptRequest][BLOCKED] " + host);
-                    return new WebResourceResponse("text/javascript", "UTF-8", null);
+                    Log.d(TAG, "[shouldInterceptRequest][NOT WHITELISTED] Letting through (diagnostic): " + host);
+                    return null;
                 }
                 return null;
             }
 
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                if (!restricted) return false;
-
-                String urlStr = request.getUrl().toString();
-                String scheme = request.getUrl().getScheme();
-
-                if (scheme != null && ("blob".equalsIgnoreCase(scheme) || "data".equalsIgnoreCase(scheme) || "about".equalsIgnoreCase(scheme))) {
-                    return false;
-                }
-
-                if (urlStr.equals("about:blank")) {
-                    return false;
-                }
-
-                if (scheme == null || !"https".equalsIgnoreCase(scheme)) {
-                    Log.d(TAG, "[shouldOverrideUrlLoading][NON-HTTPS] Blocked: " + urlStr);
-                    return true;
-                }
-
-                boolean allowed = false;
-                String host = request.getUrl().getHost();
-                if (host != null) {
-                    for (String domain : allowedDomains) {
-                        if (host.endsWith(domain)) {
-                            allowed = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!allowed) {
-                    Log.d(TAG, "[shouldOverrideUrlLoading][BLOCKED] " + host);
-                    return true;
-                }
+                // DIAGNOSTIC MODE: Allow all URLs through to test if blocking was preventing persistence
                 return false;
             }
 
@@ -312,16 +283,20 @@ public class MainActivity extends Activity {
             if (dm != null) dm.enqueue(request);
         });
 
-        // Configure WebSettings for full local storage (LocalStorage, IndexedDB, Database)
+        // Configure WebSettings for full local storage (LocalStorage, IndexedDB, Database, Service Workers)
         chatWebSettings = chatWebView.getSettings();
         chatWebSettings.setJavaScriptEnabled(true);
         chatWebSettings.setDomStorageEnabled(true);
         chatWebSettings.setDatabaseEnabled(true);
         chatWebSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        // Service Worker and multi-window support (needed for PWA persistence)
+        chatWebSettings.setSupportMultipleWindows(true);
+        chatWebSettings.setJavaScriptCanOpenWindowsAutomatically(true);
+        chatWebSettings.setMediaPlaybackRequiresUserGesture(false);
 
         // Security / Hardening overrides
-        chatWebSettings.setAllowContentAccess(false);
-        chatWebSettings.setAllowFileAccess(false);
+        chatWebSettings.setAllowContentAccess(true);  // MUST be true for IndexedDB to persist to disk
+        chatWebSettings.setAllowFileAccess(true);     // MUST be true for WebView to access its own data directory
         chatWebSettings.setBuiltInZoomControls(false);
         chatWebSettings.setDisplayZoomControls(false);
         chatWebSettings.setSaveFormData(false);
