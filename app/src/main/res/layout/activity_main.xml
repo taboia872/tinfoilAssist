@@ -9,79 +9,69 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Arrow toggle button — floating top-right -->
-    <ImageButton
-        android:id="@+id/btnMenuToggle"
-        android:background="@drawable/glass_background"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:layout_gravity="top|end"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
-        android:padding="10dp"
-        android:src="@drawable/ic_arrow_left"
-        android:contentDescription="Menu" />
-
-    <!-- Dropdown menu container — glass background only on container, buttons are transparent
-         Positioned to appear sliding out from behind the arrow button -->
+    <!-- Menu container — bookmark tab style, hugging the right edge
+         When closed: only arrow tab visible (40dp wide)
+         When open: full container slides left revealing all buttons -->
     <LinearLayout
         android:id="@+id/menuBar"
         android:orientation="horizontal"
         android:layout_width="wrap_content"
-        android:layout_height="40dp"
+        android:layout_height="44dp"
         android:layout_gravity="top|end"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
-        android:background="@drawable/glass_background"
+        android:background="@drawable/glass_tab"
         android:gravity="center_vertical"
         android:padding="0dp"
-        android:visibility="gone">
+        android:visibility="visible">
+
+        <!-- Arrow button — leftmost in container, becomes first icon when open -->
+        <ImageButton
+            android:id="@+id/btnMenuToggleInner"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:padding="12dp"
+            android:src="@drawable/ic_arrow_left"
+            android:contentDescription="Menu" />
 
         <ImageButton
             android:id="@+id/btnReload"
             android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
             android:padding="8dp"
             android:src="@drawable/ic_reload"
-            android:contentDescription="Reload" />
+            android:contentDescription="Reload"
+            android:visibility="gone" />
 
         <ImageButton
             android:id="@+id/btnRestrict"
             android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
             android:padding="8dp"
             android:src="@drawable/ic_lock"
-            android:contentDescription="Toggle restricted mode" />
+            android:contentDescription="Toggle restricted mode"
+            android:visibility="gone" />
 
         <ImageButton
             android:id="@+id/btnClearData"
             android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
             android:padding="8dp"
             android:src="@drawable/ic_delete"
-            android:contentDescription="Clear all data" />
+            android:contentDescription="Clear all data"
+            android:visibility="gone" />
 
         <ImageButton
             android:id="@+id/btnAbout"
             android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
             android:padding="8dp"
             android:src="@drawable/ic_info"
-            android:contentDescription="About" />
-
-        <!-- Arrow button is part of the container when menu is open (always last/rightmost) -->
-        <ImageButton
-            android:id="@+id/btnMenuToggleInner"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:padding="10dp"
-            android:src="@drawable/ic_arrow_left"
-            android:contentDescription="Close menu" />
+            android:contentDescription="About"
+            android:visibility="gone" />
 
     </LinearLayout>
 

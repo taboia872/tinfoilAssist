@@ -25,8 +25,6 @@ import android.util.Log;
 import android.view.ContextMenu;
 import android.view.KeyEvent;
 import android.view.View;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.ConsoleMessage;
@@ -53,7 +51,6 @@ public class MainActivity extends Activity {
 
     private WebView chatWebView = null;
     private ImageButton btnMenuToggle = null;
-    private ImageButton btnMenuToggleInner = null;
     private ImageButton btnReload = null;
     private ImageButton btnRestrict = null;
     private ImageButton btnClearData = null;
@@ -102,7 +99,7 @@ public class MainActivity extends Activity {
 
         updateRestrictIcon();
 
-        // Toggle menu visibility on arrow button click
+        // Arrow tab click — toggle menu open/closed
         btnMenuToggle.setOnClickListener(v -> {
             if (menuVisible) {
                 hideMenu();
@@ -110,9 +107,6 @@ public class MainActivity extends Activity {
                 showMenu();
             }
         });
-
-        // Inner arrow button (inside container, closes menu)
-        btnMenuToggleInner.setOnClickListener(v -> hideMenu());
 
         // Reload page
         btnReload.setOnClickListener(v -> {
@@ -162,13 +156,13 @@ public class MainActivity extends Activity {
             @Override
             public void onSwipeBottom() {
                 if (!chatWebView.canScrollVertically(0)) {
-                    btnMenuToggle.setVisibility(View.VISIBLE);
+                    menuBar.setVisibility(View.VISIBLE);
                 }
             }
             @Override
             public void onSwipeTop() {
-                btnMenuToggle.setVisibility(View.GONE);
                 hideMenu();
+                menuBar.setVisibility(View.GONE);
             }
         };
 
@@ -181,25 +175,33 @@ public class MainActivity extends Activity {
 
     private void showMenu() {
         menuVisible = true;
-        btnMenuToggle.setVisibility(View.GONE);  // hide floating arrow
-        menuBar.setVisibility(View.VISIBLE);
-        Animation slideIn = AnimationUtils.loadAnimation(context, R.anim.menu_slide_in);
-        menuBar.startAnimation(slideIn);
+        // Reveal action buttons with fade-in
+        int[] btnIds = {R.id.btnReload, R.id.btnRestrict, R.id.btnClearData, R.id.btnAbout};
+        for (int i = 0; i < btnIds.length; i++) {
+            ImageButton btn = menuBar.findViewById(btnIds[i]);
+            btn.setVisibility(View.VISIBLE);
+            btn.setAlpha(0f);
+            btn.animate()
+                .alpha(1f)
+                .setStartDelay(i * 50L)
+                .setDuration(200)
+                .start();
+        }
     }
 
     private void hideMenu() {
         if (!menuVisible) return;
         menuVisible = false;
-        Animation slideOut = AnimationUtils.loadAnimation(context, R.anim.menu_slide_out);
-        slideOut.setAnimationListener(new Animation.AnimationListener() {
-            @Override public void onAnimationStart(Animation animation) {}
-            @Override public void onAnimationRepeat(Animation animation) {}
-            @Override public void onAnimationEnd(Animation animation) {
-                menuBar.setVisibility(View.GONE);
-                btnMenuToggle.setVisibility(View.VISIBLE);  // restore floating arrow
-            }
-        });
-        menuBar.startAnimation(slideOut);
+        // Hide action buttons with fade-out
+        int[] btnIds = {R.id.btnReload, R.id.btnRestrict, R.id.btnClearData, R.id.btnAbout};
+        for (int id : btnIds) {
+            ImageButton btn = menuBar.findViewById(id);
+            btn.animate()
+                .alpha(0f)
+                .setDuration(150)
+                .withEndAction(() -> btn.setVisibility(View.GONE))
+                .start();
+        }
     }
 
     @Override
@@ -225,8 +227,7 @@ public class MainActivity extends Activity {
 
         chatWebView = findViewById(R.id.chatWebView);
         registerForContextMenu(chatWebView);
-        btnMenuToggle = findViewById(R.id.btnMenuToggle);
-        btnMenuToggleInner = findViewById(R.id.btnMenuToggleInner);
+        btnMenuToggle = findViewById(R.id.btnMenuToggleInner);
         btnReload = findViewById(R.id.btnReload);
         btnRestrict = findViewById(R.id.btnRestrict);
         btnClearData = findViewById(R.id.btnClearData);

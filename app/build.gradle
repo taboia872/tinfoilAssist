@@ -10,7 +10,7 @@ android {
         applicationId "io.github.tinfoilassist"
         minSdk 21
         targetSdk 35
-        versionCode 111
+        versionCode 112
         versionName "1.1.0"
     }
 
