@@ -173,6 +173,11 @@ public class MainActivity extends Activity {
         btnRestrict.setImageDrawable(getDrawable(restricted ? R.drawable.ic_lock : R.drawable.ic_lock_open));
     }
 
+    private int getArrowWidth() {
+        ImageButton arrow = menuBar.findViewById(R.id.btnMenuToggleInner);
+        return arrow.getWidth();
+    }
+
     private void showMenu() {
         menuVisible = true;
         // Show action buttons immediately (no fade)
@@ -182,8 +187,13 @@ public class MainActivity extends Activity {
             btn.setAlpha(1f);
             btn.setVisibility(View.VISIBLE);
         }
-        // Slide container in from the right edge (500ms)
-        menuBar.setTranslationX(menuBar.getWidth());
+        // Measure full width now that all buttons are visible
+        menuBar.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        int fullWidth = menuBar.getMeasuredWidth();
+        int arrowWidth = getArrowWidth();
+        int slideDistance = fullWidth - arrowWidth;
+        // Slide container left by exactly the distance that reveals all buttons
+        menuBar.setTranslationX(slideDistance);
         menuBar.animate()
             .translationX(0f)
             .setDuration(500)
@@ -193,9 +203,14 @@ public class MainActivity extends Activity {
     private void hideMenu() {
         if (!menuVisible) return;
         menuVisible = false;
-        // Slide container out to the right edge (500ms)
+        // Measure current full width (all buttons visible)
+        menuBar.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        int fullWidth = menuBar.getMeasuredWidth();
+        int arrowWidth = getArrowWidth();
+        int slideDistance = fullWidth - arrowWidth;
+        // Slide right by the distance that hides all buttons except the arrow
         menuBar.animate()
-            .translationX(menuBar.getWidth())
+            .translationX(slideDistance)
             .setDuration(500)
             .withEndAction(() -> {
                 int[] btnIds = {R.id.btnReload, R.id.btnRestrict, R.id.btnClearData, R.id.btnAbout};
@@ -469,21 +484,12 @@ public class MainActivity extends Activity {
         allowedDomains.add("tinfoilsh.github.io");
         allowedDomains.add("cdn.jsdelivr.net");
 
-        // Google Authentication
-        allowedDomains.add("google.com");
-        allowedDomains.add("accounts.google.com");
+        // Google resources (fonts, icons, JS libraries) — NOT auth
         allowedDomains.add("gstatic.com");
-        allowedDomains.add("googleusercontent.com");
         allowedDomains.add("googleapis.com");
 
-        // Microsoft Authentication
-        allowedDomains.add("microsoft.com");
-        allowedDomains.add("microsoftonline.com");
-        allowedDomains.add("live.com");
-
-        // Apple Authentication
+        // Apple resources — NOT auth
         allowedDomains.add("apple.com");
-        allowedDomains.add("appleid.apple.com");
     }
 
     @Override

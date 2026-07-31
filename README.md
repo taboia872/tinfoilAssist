@@ -32,12 +32,12 @@ Via injeção de JavaScript no `onPageStarted` e `onPageFinished`, as seguintes 
 Todo tráfego de rede passa por `shouldInterceptRequest` e `shouldOverrideUrlLoading`. Apenas estes domínios são permitidos:
 
 - `tinfoil.sh`, `chat.tinfoil.sh`, `clerk.tinfoil.sh`, `verification-center.tinfoil.sh`
-- `clerk.accounts.dev`, `clerk.com` — autenticação Clerk
+- `clerk.accounts.dev`, `clerk.com` — autenticação Clerk (email/senha)
 - `tinfoilsh.github.io`
 - `cdn.jsdelivr.net` — CDN de assets
-- `google.com`, `accounts.google.com`, `gstatic.com`, `googleusercontent.com`, `googleapis.com` — login Google
-- `microsoft.com`, `microsoftonline.com`, `live.com` — login Microsoft
-- `apple.com`, `appleid.apple.com` — login Apple
+- `gstatic.com`, `googleapis.com` — recursos estáticos do Google (fontes, ícones, JS)
+- `apple.com` — recursos da Apple
+- **Bloqueado:** `google.com`, `accounts.google.com`, `googleusercontent.com` (login Google OAuth), `microsoft.com`, `microsoftonline.com`, `live.com` (login Microsoft), `appleid.apple.com` (login Apple)
 
 Tudo o que não estiver na lista é bloqueado com uma resposta vazia.
 
