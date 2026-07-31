@@ -53,6 +53,7 @@ public class MainActivity extends Activity {
 
     private WebView chatWebView = null;
     private ImageButton btnMenuToggle = null;
+    private ImageButton btnMenuToggleInner = null;
     private ImageButton btnReload = null;
     private ImageButton btnRestrict = null;
     private ImageButton btnClearData = null;
@@ -109,6 +110,9 @@ public class MainActivity extends Activity {
                 showMenu();
             }
         });
+
+        // Inner arrow button (inside container, closes menu)
+        btnMenuToggleInner.setOnClickListener(v -> hideMenu());
 
         // Reload page
         btnReload.setOnClickListener(v -> {
@@ -177,23 +181,25 @@ public class MainActivity extends Activity {
 
     private void showMenu() {
         menuVisible = true;
+        btnMenuToggle.setVisibility(View.GONE);  // hide floating arrow
         menuBar.setVisibility(View.VISIBLE);
-        Animation slideDown = AnimationUtils.loadAnimation(context, R.anim.menu_slide_down);
-        menuBar.startAnimation(slideDown);
+        Animation slideIn = AnimationUtils.loadAnimation(context, R.anim.menu_slide_in);
+        menuBar.startAnimation(slideIn);
     }
 
     private void hideMenu() {
         if (!menuVisible) return;
         menuVisible = false;
-        Animation slideUp = AnimationUtils.loadAnimation(context, R.anim.menu_slide_up);
-        slideUp.setAnimationListener(new Animation.AnimationListener() {
+        Animation slideOut = AnimationUtils.loadAnimation(context, R.anim.menu_slide_out);
+        slideOut.setAnimationListener(new Animation.AnimationListener() {
             @Override public void onAnimationStart(Animation animation) {}
             @Override public void onAnimationRepeat(Animation animation) {}
             @Override public void onAnimationEnd(Animation animation) {
                 menuBar.setVisibility(View.GONE);
+                btnMenuToggle.setVisibility(View.VISIBLE);  // restore floating arrow
             }
         });
-        menuBar.startAnimation(slideUp);
+        menuBar.startAnimation(slideOut);
     }
 
     @Override
@@ -220,6 +226,7 @@ public class MainActivity extends Activity {
         chatWebView = findViewById(R.id.chatWebView);
         registerForContextMenu(chatWebView);
         btnMenuToggle = findViewById(R.id.btnMenuToggle);
+        btnMenuToggleInner = findViewById(R.id.btnMenuToggleInner);
         btnReload = findViewById(R.id.btnReload);
         btnRestrict = findViewById(R.id.btnRestrict);
         btnClearData = findViewById(R.id.btnClearData);

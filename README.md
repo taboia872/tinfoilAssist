@@ -92,7 +92,22 @@ Por ser um WebView, este app herda algumas limitações estruturais:
 └─────────────────────────────────────┘
 ```
 
-O app carrega `https://chat.tinfoil.sh/` num WebView em tela cheia, sem barra de título. Um botão no canto superior direito (revelado ao deslizar para baixo) permite alternar entre o modo restrito (whitelist ativa) e irrestrito (todos os domínios permitidos).
+O app carrega `https://chat.tinfoil.sh/` num WebView em tela cheia, sem barra de título.
+
+### Menu de opções
+
+No canto superior direito há um botão com uma seta (←). Ao tocá-lo, um menu desliza suavemente da direita com efeito de vidro (glassmorphism — fundo translúcido escuro com borda sutil). O menu contém 4 ícones:
+
+| Ícone | Função |
+|-------|--------|
+| 🔄 **Reload** | Recarrega a página |
+| 🔒/🔓 **Restrict** | Liga/desliga a whitelist de domínios (modo restrito = bloqueia domínios não autorizados; irrestrito = permite tudo) |
+| 🗑️ **Clear Data** | Apaga cookies, cache, histórico, IndexedDB e LocalStorage. Exige confirmação antes de limpar |
+| ℹ️ **About** | Mostra versão, créditos e licença |
+
+O botão de seta some quando o menu está aberto (a seta fica dentro do container, à direita). Tocar nela novamente ou em qualquer opção fecha o menu com animação de recolimento.
+
+Para revelar o botão de seta: deslize de cima para baixo no topo da página (quando o conteúdo estiver no topo). Deslizar de baixo para cima esconde o botão e fecha o menu.
 
 ---
 
