@@ -96,7 +96,7 @@ O app carrega `https://chat.tinfoil.sh/` num WebView em tela cheia, sem barra de
 
 ### Menu de opções
 
-No canto superior direito há um botão com uma seta (←). Ao tocá-lo, um menu desliza suavemente da direita com efeito de vidro (glassmorphism — fundo translúcido escuro com borda sutil). O menu contém 4 ícones:
+No canto superior direito há um botão com uma seta (←). Ao tocá-lo, o container inteiro desliza suavemente da direita para a esquerda (500ms), revelando os ícones junto com o recipiente — sem fade-in/fade-out dos ícones. O menu tem efeito de vidro (glassmorphism — fundo translúcido escuro com borda sutil) e contém 4 ícones:
 
 | Ícone | Função |
 |-------|--------|
@@ -105,7 +105,7 @@ No canto superior direito há um botão com uma seta (←). Ao tocá-lo, um menu
 | 🗑️ **Clear Data** | Apaga cookies, cache, histórico, IndexedDB e LocalStorage. Exige confirmação antes de limpar |
 | ℹ️ **About** | Mostra versão, créditos e licença |
 
-O botão de seta some quando o menu está aberto (a seta fica dentro do container, à direita). Tocar nela novamente ou em qualquer opção fecha o menu com animação de recolimento.
+O botão de seta permanece sempre visível. Quando o menu está fechado, só a seta aparece. Ao tocar nela, o container desliza para a esquerda revelando os botões. Ao tocar novamente (ou em qualquer opção), o container desliza de volta para a direita até só a seta ficar visível — sem sumir completamente da tela.
 
 Para revelar o botão de seta: deslize de cima para baixo no topo da página (quando o conteúdo estiver no topo). Deslizar de baixo para cima esconde o botão e fecha o menu.
 
