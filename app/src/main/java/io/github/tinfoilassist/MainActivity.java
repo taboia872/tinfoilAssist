@@ -175,7 +175,7 @@ public class MainActivity extends Activity {
 
     private void showMenu() {
         menuVisible = true;
-        // Reveal action buttons with fade-in
+        // Reveal action buttons with fade-in (1 second, uniform with close)
         int[] btnIds = {R.id.btnReload, R.id.btnRestrict, R.id.btnClearData, R.id.btnAbout};
         for (int i = 0; i < btnIds.length; i++) {
             ImageButton btn = menuBar.findViewById(btnIds[i]);
@@ -183,8 +183,8 @@ public class MainActivity extends Activity {
             btn.setAlpha(0f);
             btn.animate()
                 .alpha(1f)
-                .setStartDelay(i * 50L)
-                .setDuration(200)
+                .setStartDelay(i * 100L)
+                .setDuration(1000)
                 .start();
         }
     }
@@ -192,13 +192,15 @@ public class MainActivity extends Activity {
     private void hideMenu() {
         if (!menuVisible) return;
         menuVisible = false;
-        // Hide action buttons with fade-out
+        // Hide action buttons with fade-out (1 second, uniform with open)
         int[] btnIds = {R.id.btnReload, R.id.btnRestrict, R.id.btnClearData, R.id.btnAbout};
-        for (int id : btnIds) {
-            ImageButton btn = menuBar.findViewById(id);
+        for (int i = 0; i < btnIds.length; i++) {
+            ImageButton btn = menuBar.findViewById(btnIds[i]);
+            int index = i;
             btn.animate()
                 .alpha(0f)
-                .setDuration(150)
+                .setStartDelay((btnIds.length - 1 - index) * 100L)
+                .setDuration(1000)
                 .withEndAction(() -> btn.setVisibility(View.GONE))
                 .start();
         }

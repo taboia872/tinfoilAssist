@@ -26,7 +26,7 @@
         <!-- Arrow button — leftmost in container, becomes first icon when open -->
         <ImageButton
             android:id="@+id/btnMenuToggleInner"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:background="@android:color/transparent"
             android:layout_width="44dp"
             android:layout_height="44dp"
             android:padding="12dp"
@@ -35,7 +35,7 @@
 
         <ImageButton
             android:id="@+id/btnReload"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:background="@android:color/transparent"
             android:layout_width="44dp"
             android:layout_height="44dp"
             android:padding="8dp"
@@ -45,7 +45,7 @@
 
         <ImageButton
             android:id="@+id/btnRestrict"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:background="@android:color/transparent"
             android:layout_width="44dp"
             android:layout_height="44dp"
             android:padding="8dp"
@@ -55,7 +55,7 @@
 
         <ImageButton
             android:id="@+id/btnClearData"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:background="@android:color/transparent"
             android:layout_width="44dp"
             android:layout_height="44dp"
             android:padding="8dp"
@@ -65,7 +65,7 @@
 
         <ImageButton
             android:id="@+id/btnAbout"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:background="@android:color/transparent"
             android:layout_width="44dp"
             android:layout_height="44dp"
             android:padding="8dp"
