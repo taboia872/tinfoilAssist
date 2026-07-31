@@ -175,35 +175,37 @@ public class MainActivity extends Activity {
 
     private void showMenu() {
         menuVisible = true;
-        // Reveal action buttons with fade-in (1 second, uniform with close)
+        // Show action buttons immediately (no fade)
         int[] btnIds = {R.id.btnReload, R.id.btnRestrict, R.id.btnClearData, R.id.btnAbout};
-        for (int i = 0; i < btnIds.length; i++) {
-            ImageButton btn = menuBar.findViewById(btnIds[i]);
+        for (int btnId : btnIds) {
+            ImageButton btn = menuBar.findViewById(btnId);
+            btn.setAlpha(1f);
             btn.setVisibility(View.VISIBLE);
-            btn.setAlpha(0f);
-            btn.animate()
-                .alpha(1f)
-                .setStartDelay(i * 100L)
-                .setDuration(1000)
-                .start();
         }
+        // Slide container in from the right edge (500ms)
+        menuBar.setTranslationX(menuBar.getWidth());
+        menuBar.animate()
+            .translationX(0f)
+            .setDuration(500)
+            .start();
     }
 
     private void hideMenu() {
         if (!menuVisible) return;
         menuVisible = false;
-        // Hide action buttons with fade-out (1 second, uniform with open)
-        int[] btnIds = {R.id.btnReload, R.id.btnRestrict, R.id.btnClearData, R.id.btnAbout};
-        for (int i = 0; i < btnIds.length; i++) {
-            ImageButton btn = menuBar.findViewById(btnIds[i]);
-            int index = i;
-            btn.animate()
-                .alpha(0f)
-                .setStartDelay((btnIds.length - 1 - index) * 100L)
-                .setDuration(1000)
-                .withEndAction(() -> btn.setVisibility(View.GONE))
-                .start();
-        }
+        // Slide container out to the right edge (500ms)
+        menuBar.animate()
+            .translationX(menuBar.getWidth())
+            .setDuration(500)
+            .withEndAction(() -> {
+                int[] btnIds = {R.id.btnReload, R.id.btnRestrict, R.id.btnClearData, R.id.btnAbout};
+                for (int btnId : btnIds) {
+                    ImageButton btn = menuBar.findViewById(btnId);
+                    btn.setVisibility(View.GONE);
+                }
+                menuBar.setTranslationX(0f);
+            })
+            .start();
     }
 
     @Override
