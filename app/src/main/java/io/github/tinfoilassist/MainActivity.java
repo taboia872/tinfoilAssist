@@ -25,6 +25,8 @@ import android.util.Log;
 import android.view.ContextMenu;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.ConsoleMessage;
@@ -101,8 +103,11 @@ public class MainActivity extends Activity {
 
         // Toggle menu visibility on arrow button click
         btnMenuToggle.setOnClickListener(v -> {
-            menuVisible = !menuVisible;
-            menuBar.setVisibility(menuVisible ? View.VISIBLE : View.GONE);
+            if (menuVisible) {
+                hideMenu();
+            } else {
+                showMenu();
+            }
         });
 
         // Reload page
@@ -170,9 +175,25 @@ public class MainActivity extends Activity {
         btnRestrict.setImageDrawable(getDrawable(restricted ? R.drawable.ic_lock : R.drawable.ic_lock_open));
     }
 
+    private void showMenu() {
+        menuVisible = true;
+        menuBar.setVisibility(View.VISIBLE);
+        Animation slideDown = AnimationUtils.loadAnimation(context, R.anim.menu_slide_down);
+        menuBar.startAnimation(slideDown);
+    }
+
     private void hideMenu() {
+        if (!menuVisible) return;
         menuVisible = false;
-        menuBar.setVisibility(View.GONE);
+        Animation slideUp = AnimationUtils.loadAnimation(context, R.anim.menu_slide_up);
+        slideUp.setAnimationListener(new Animation.AnimationListener() {
+            @Override public void onAnimationStart(Animation animation) {}
+            @Override public void onAnimationRepeat(Animation animation) {}
+            @Override public void onAnimationEnd(Animation animation) {
+                menuBar.setVisibility(View.GONE);
+            }
+        });
+        menuBar.startAnimation(slideUp);
     }
 
     @Override
