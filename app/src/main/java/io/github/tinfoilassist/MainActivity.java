@@ -63,6 +63,7 @@ public class MainActivity extends Activity {
     private ImageButton btnRestrict = null;
     private ImageButton btnClearData = null;
     private ImageButton btnAbout = null;
+    private ImageButton btnSettings = null;
     private LinearLayout menuBar = null;
     private boolean menuVisible = false;
     private WebSettings chatWebSettings = null;
@@ -216,6 +217,38 @@ public class MainActivity extends Activity {
             hideMenu();
         });
 
+        // Settings dialog — toggle privacy/security options
+        btnSettings.setOnClickListener(v -> {
+            String[] options = {
+                "Block non-HTTPS traffic",
+                "Block WebRTC",
+                "Block Device Orientation/Motion",
+                "Do Not Track (DNT)",
+                "Spoof Timezone (random)"
+            };
+            boolean[] checked = {restricted, webrtcBlocked, sensorsBlocked, dntEnabled, timezoneSpoofed};
+            new AlertDialog.Builder(context)
+                .setTitle("Settings")
+                .setMultiChoiceItems(options, checked, (dialog, which, isChecked) -> {
+                    if (which == 0) restricted = isChecked;
+                    else if (which == 1) webrtcBlocked = isChecked;
+                    else if (which == 2) sensorsBlocked = isChecked;
+                    else if (which == 3) dntEnabled = isChecked;
+                    else if (which == 4) {
+                        timezoneSpoofed = isChecked;
+                        if (!isChecked) spoofedTimezone = "UTC";
+                    }
+                })
+                .setPositiveButton("Apply & Reload", (dialog, which) -> {
+                    chatWebSettings.setUserAgentString(modUserAgent());
+                    installDocumentStartScripts();
+                    chatWebView.reload();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+            hideMenu();
+        });
+
         swipeTouchListener = new SwipeTouchListener(context) {
             @Override
             public void onSwipeBottom() {
@@ -245,7 +278,7 @@ public class MainActivity extends Activity {
     private void showMenu() {
         menuVisible = true;
         // Show action buttons immediately (no fade)
-        int[] btnIds = {R.id.btnReload, R.id.btnRestrict, R.id.btnClearData, R.id.btnAbout};
+        int[] btnIds = {R.id.btnReload, R.id.btnRestrict, R.id.btnClearData, R.id.btnSettings, R.id.btnAbout};
         for (int btnId : btnIds) {
             ImageButton btn = menuBar.findViewById(btnId);
             btn.setAlpha(1f);
@@ -277,7 +310,7 @@ public class MainActivity extends Activity {
             .translationX(slideDistance)
             .setDuration(500)
             .withEndAction(() -> {
-                int[] btnIds = {R.id.btnReload, R.id.btnRestrict, R.id.btnClearData, R.id.btnAbout};
+                int[] btnIds = {R.id.btnReload, R.id.btnRestrict, R.id.btnClearData, R.id.btnSettings, R.id.btnAbout};
                 for (int btnId : btnIds) {
                     ImageButton btn = menuBar.findViewById(btnId);
                     btn.setVisibility(View.GONE);
@@ -315,6 +348,7 @@ public class MainActivity extends Activity {
         btnRestrict = findViewById(R.id.btnRestrict);
         btnClearData = findViewById(R.id.btnClearData);
         btnAbout = findViewById(R.id.btnAbout);
+        btnSettings = findViewById(R.id.btnSettings);
         menuBar = findViewById(R.id.menuBar);
 
         // Cookie security settings - Allow cookies for domain storage and authentication persistence
