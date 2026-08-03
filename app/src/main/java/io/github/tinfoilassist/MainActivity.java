@@ -44,8 +44,16 @@ import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.webkit.URLUtilCompat;
+import androidx.webkit.WebViewCompat;
+import androidx.webkit.WebViewFeature;
+import androidx.webkit.ScriptHandler;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Scanner;
+import java.util.Set;
 
 public class MainActivity extends Activity {
 
@@ -64,27 +72,83 @@ public class MainActivity extends Activity {
     private static final String TAG = "tinfoilAssist";
     private static final String URL_TO_LOAD = "https://chat.tinfoil.sh/";
     private static boolean restricted = true;
+    private static boolean webrtcBlocked = true;
+    private static boolean sensorsBlocked = true;
+    private static boolean dntEnabled = true;
+    private static boolean timezoneSpoofed = true;
+    private static String spoofedTimezone = "UTC";
 
     private static final ArrayList<String> allowedDomains = new ArrayList<>();
 
     private ValueCallback<Uri[]> mUploadMessage;
     private static final int FILE_CHOOSER_REQUEST_CODE = 1;
 
-    // JavaScript code to disable battery, sensor, and hardware APIs inside the WebView
-    private static final String HARDENING_JS =
-            "javascript:(function() {" +
-            "  try {" +
-            "    if (navigator.getBattery) { navigator.getBattery = function() { return Promise.reject(new Error('Battery API disabled for privacy')); }; }" +
-            "    Object.defineProperty(window, 'DeviceOrientationEvent', { value: undefined, configurable: false });" +
-            "    Object.defineProperty(window, 'DeviceMotionEvent', { value: undefined, configurable: false });" +
-            "    if (navigator.vibrate) { navigator.vibrate = function() { return false; }; }" +
-            "    if (navigator.connection) { Object.defineProperty(navigator, 'connection', { value: undefined }); }" +
-            "    if (navigator.geolocation) {" +
-            "      navigator.geolocation.getCurrentPosition = function(s, e) { if (e) e({code: 1, message: 'Geolocation disabled'}); };" +
-            "      navigator.geolocation.watchPosition = function() { return 0; };" +
-            "    }" +
-            "  } catch(e) { console.log('Hardening error:', e); }" +
-            "})();";
+    // Script handles injected via addDocumentStartJavaScript (API-neutral via
+    // androidx.webkit). Each is registered once after WebView configuration so
+    // they fire before any page script on every navigation (document_start).
+    private ScriptHandler tzScriptHandler = null;
+    private ScriptHandler hardeningScriptHandler = null;
+    private static final Set<String> ALLOW_ALL_ORIGINS = Collections.singleton("*");
+
+    // Pick a random timezone once per session if timezone spoofing is on.
+    private static String pickRandomTimezone() {
+        String[] timezones = {
+            "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles",
+            "America/Sao_Paulo", "America/Toronto", "America/Vancouver",
+            "Europe/London", "Europe/Paris", "Europe/Berlin", "Europe/Madrid", "Europe/Rome",
+            "Europe/Amsterdam", "Europe/Stockholm", "Europe/Warsaw", "Europe/Istanbul",
+            "Asia/Tokyo", "Asia/Singapore", "Asia/Seoul", "Asia/Bangkok",
+            "Asia/Dubai", "Asia/Kolkata", "Asia/Hong_Kong",
+            "Australia/Sydney", "Australia/Melbourne"
+        };
+        return timezones[(int) (Math.random() * timezones.length)];
+    }
+
+    private String readAsset(String filename) {
+        try (InputStream is = getAssets().open(filename)) {
+            Scanner sc = new Scanner(is, "UTF-8").useDelimiter("\\A");
+            return sc.hasNext() ? sc.next() : "";
+        } catch (IOException e) {
+            Log.e(TAG, "readAsset(" + filename + "): " + e.getMessage());
+            return "";
+        }
+    }
+
+    private String buildTzSpoofScript() {
+        if (timezoneSpoofed && "UTC".equals(spoofedTimezone)) {
+            spoofedTimezone = pickRandomTimezone();
+        }
+        String tz = timezoneSpoofed ? spoofedTimezone : "";
+        String json = "{\"timezone\":\"" + tz + "\",\"tzEnabled\":" + timezoneSpoofed + "}";
+        String js = readAsset("tzspoof.js");
+        return "window.__TA_SETTINGS__ = " + json + ";\n" + js;
+    }
+
+    private String buildHardeningScript() {
+        String json = "{\"sensorsBlocked\":" + sensorsBlocked
+            + ",\"dntEnabled\":" + dntEnabled
+            + ",\"webrtcBlocked\":" + webrtcBlocked + "}";
+        String js = readAsset("hardening.js");
+        return "window.__TA_SETTINGS__ = " + json + ";\n" + js;
+    }
+
+    private void installDocumentStartScripts() {
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) return;
+        if (tzScriptHandler != null) { tzScriptHandler.remove(); tzScriptHandler = null; }
+        if (hardeningScriptHandler != null) { hardeningScriptHandler.remove(); hardeningScriptHandler = null; }
+        try {
+            hardeningScriptHandler = WebViewCompat.addDocumentStartJavaScript(
+                chatWebView, buildHardeningScript(), ALLOW_ALL_ORIGINS);
+        } catch (Exception e) { Log.w(TAG, "hardening script registration: " + e.getMessage()); }
+        try {
+            tzScriptHandler = WebViewCompat.addDocumentStartJavaScript(
+                chatWebView, buildTzSpoofScript(), ALLOW_ALL_ORIGINS);
+        } catch (Exception e) { Log.w(TAG, "tz spoof script registration: " + e.getMessage()); }
+    }
+
+    private boolean documentStartSupported() {
+        return WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT);
+    }
 
     @Override
     protected void onPause() {
@@ -313,13 +377,18 @@ public class MainActivity extends Activity {
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
-                view.loadUrl(HARDENING_JS);
+                // Fallback for WebViews without DOCUMENT_START_SCRIPT support.
+                // The primary path installs scripts via addDocumentStartJavaScript
+                // which fires before page scripts; this is the legacy safety net.
+                if (!documentStartSupported()) {
+                    view.evaluateJavascript(buildHardeningScript(), null);
+                    view.evaluateJavascript(buildTzSpoofScript(), null);
+                }
             }
 
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                view.loadUrl(HARDENING_JS);
                 if (chatCookieManager != null) {
                     chatCookieManager.flush();
                 }
@@ -442,6 +511,11 @@ public class MainActivity extends Activity {
         chatWebSettings.setGeolocationEnabled(false);
         chatWebSettings.setUserAgentString(modUserAgent());
 
+        // Install document_start scripts — fires before page scripts on every
+        // navigation. This is the primary injection path; onPageStarted fallback
+        // handles older WebViews that lack DOCUMENT_START_SCRIPT support.
+        installDocumentStartScripts();
+
         chatWebView.loadUrl(URL_TO_LOAD);
     }
 
@@ -477,10 +551,12 @@ public class MainActivity extends Activity {
         // Domains permitted for Tinfoil Chat, Clerk, and authentication providers
         allowedDomains.add("tinfoil.sh");
         allowedDomains.add("chat.tinfoil.sh");
+        allowedDomains.add("api.tinfoil.sh");
+        allowedDomains.add("atc.tinfoil.sh");
         allowedDomains.add("clerk.tinfoil.sh");
         allowedDomains.add("verification-center.tinfoil.sh");
         allowedDomains.add("clerk.accounts.dev");
-        allowedDomains.add("clerk.com"); // Clerk central domain
+        allowedDomains.add("clerk.com");
         allowedDomains.add("tinfoilsh.github.io");
         allowedDomains.add("cdn.jsdelivr.net");
 
