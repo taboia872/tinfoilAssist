@@ -121,9 +121,9 @@ No canto superior direito há um botão com uma seta (←). Ao tocá-lo, o conta
 | Ícone | Função |
 |-------|--------|
 | 🔄 **Reload** | Recarrega a página |
-| 🔒/🔓 **Restrict** | Liga/desliga a whitelist de domínios (modo restrito = bloqueia domínios não autorizados; irrestrito = permite tudo) |
 | 🗑️ **Clear Data** | Apaga cookies, cache, histórico, IndexedDB e LocalStorage. Exige confirmação antes de limpar |
-| ℹ️ **About** | Mostra versão, créditos e licença |
+| ⚙️ **Settings** | Dialog com toggles: Restrict domains (HTTPS + OAuth block), Block WebRTC, Block sensors, DNT, Spoof timezone |
+| ℹ️ **About** | Mostra versão, features e créditos |
 
 O botão de seta permanece sempre visível. Quando o menu está fechado, só a seta aparece. Ao tocar nela, o container desliza para a esquerda revelando os botões. Ao tocar novamente (ou em qualquer opção), o container desliza de volta para a direita até só a seta ficar visível — sem sumir completamente da tela.
 

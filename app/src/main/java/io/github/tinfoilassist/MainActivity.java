@@ -60,7 +60,6 @@ public class MainActivity extends Activity {
     private WebView chatWebView = null;
     private ImageButton btnMenuToggle = null;
     private ImageButton btnReload = null;
-    private ImageButton btnRestrict = null;
     private ImageButton btnClearData = null;
     private ImageButton btnAbout = null;
     private ImageButton btnSettings = null;
@@ -162,8 +161,6 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
 
-        updateRestrictIcon();
-
         // Arrow tab click — toggle menu open/closed
         btnMenuToggle.setOnClickListener(v -> {
             if (menuVisible) {
@@ -175,20 +172,6 @@ public class MainActivity extends Activity {
 
         // Reload page
         btnReload.setOnClickListener(v -> {
-            chatWebView.reload();
-            hideMenu();
-        });
-
-        // Toggle restricted mode
-        btnRestrict.setOnClickListener(v -> {
-            restricted = !restricted;
-            updateRestrictIcon();
-            if (restricted) {
-                Toast.makeText(context, R.string.urls_restricted, Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(context, R.string.all_urls, Toast.LENGTH_SHORT).show();
-            }
-            chatWebSettings.setUserAgentString(modUserAgent());
             chatWebView.reload();
             hideMenu();
         });
@@ -220,7 +203,7 @@ public class MainActivity extends Activity {
         // Settings dialog — toggle privacy/security options
         btnSettings.setOnClickListener(v -> {
             String[] options = {
-                "Block non-HTTPS traffic",
+                "Restrict domains (HTTPS + block OAuth)",
                 "Block WebRTC",
                 "Block Device Orientation/Motion",
                 "Do Not Track (DNT)",
@@ -266,10 +249,6 @@ public class MainActivity extends Activity {
         chatWebView.setOnTouchListener(swipeTouchListener);
     }
 
-    private void updateRestrictIcon() {
-        btnRestrict.setImageDrawable(getDrawable(restricted ? R.drawable.ic_lock : R.drawable.ic_lock_open));
-    }
-
     private int getArrowWidth() {
         ImageButton arrow = menuBar.findViewById(R.id.btnMenuToggleInner);
         return arrow.getWidth();
@@ -278,7 +257,7 @@ public class MainActivity extends Activity {
     private void showMenu() {
         menuVisible = true;
         // Show action buttons immediately (no fade)
-        int[] btnIds = {R.id.btnReload, R.id.btnRestrict, R.id.btnClearData, R.id.btnSettings, R.id.btnAbout};
+        int[] btnIds = {R.id.btnReload, R.id.btnClearData, R.id.btnSettings, R.id.btnAbout};
         for (int btnId : btnIds) {
             ImageButton btn = menuBar.findViewById(btnId);
             btn.setAlpha(1f);
@@ -310,7 +289,7 @@ public class MainActivity extends Activity {
             .translationX(slideDistance)
             .setDuration(500)
             .withEndAction(() -> {
-                int[] btnIds = {R.id.btnReload, R.id.btnRestrict, R.id.btnClearData, R.id.btnSettings, R.id.btnAbout};
+                int[] btnIds = {R.id.btnReload, R.id.btnClearData, R.id.btnSettings, R.id.btnAbout};
                 for (int btnId : btnIds) {
                     ImageButton btn = menuBar.findViewById(btnId);
                     btn.setVisibility(View.GONE);
@@ -345,10 +324,9 @@ public class MainActivity extends Activity {
         registerForContextMenu(chatWebView);
         btnMenuToggle = findViewById(R.id.btnMenuToggleInner);
         btnReload = findViewById(R.id.btnReload);
-        btnRestrict = findViewById(R.id.btnRestrict);
         btnClearData = findViewById(R.id.btnClearData);
-        btnAbout = findViewById(R.id.btnAbout);
         btnSettings = findViewById(R.id.btnSettings);
+        btnAbout = findViewById(R.id.btnAbout);
         menuBar = findViewById(R.id.menuBar);
 
         // Cookie security settings - Allow cookies for domain storage and authentication persistence
