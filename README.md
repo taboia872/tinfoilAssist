@@ -49,9 +49,7 @@ Todo tráfego de rede passa por `shouldInterceptRequest` e `shouldOverrideUrlLoa
 - `clerk.accounts.dev`, `clerk.com` — autenticação Clerk (email/senha)
 - `tinfoilsh.github.io`
 - `cdn.jsdelivr.net` — CDN de assets
-- `gstatic.com`, `googleapis.com` — recursos estáticos do Google (fontes, ícones, JS)
-- `apple.com` — recursos da Apple
-- **Bloqueado:** `google.com`, `accounts.google.com`, `googleusercontent.com` (login Google OAuth), `microsoft.com`, `microsoftonline.com`, `live.com` (login Microsoft), `appleid.apple.com` (login Apple)
+- **Bloqueado:** `google.com`, `accounts.google.com`, `googleusercontent.com` (login Google OAuth), `microsoft.com`, `microsoftonline.com`, `live.com` (login Microsoft), `appleid.apple.com` (login Apple), `gstatic.com`, `googleapis.com`, `apple.com` (recursos Google/Apple — não utilizados pelo Tinfoil Chat)
 
 Tudo o que não estiver na lista é bloqueado com uma resposta vazia.
 

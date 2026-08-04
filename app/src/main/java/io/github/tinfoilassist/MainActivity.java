@@ -571,13 +571,6 @@ public class MainActivity extends Activity {
         allowedDomains.add("clerk.com");
         allowedDomains.add("tinfoilsh.github.io");
         allowedDomains.add("cdn.jsdelivr.net");
-
-        // Google resources (fonts, icons, JS libraries) — NOT auth
-        allowedDomains.add("gstatic.com");
-        allowedDomains.add("googleapis.com");
-
-        // Apple resources — NOT auth
-        allowedDomains.add("apple.com");
     }
 
     @Override
