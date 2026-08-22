@@ -13,6 +13,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
@@ -67,6 +68,7 @@ public class MainActivity extends Activity {
     private boolean menuVisible = false;
     private WebSettings chatWebSettings = null;
     private CookieManager chatCookieManager = null;
+    private SharedPreferences prefs = null;
     private final Context context = this;
     private SwipeTouchListener swipeTouchListener;
     private static final String TAG = "tinfoilAssist";
@@ -223,6 +225,7 @@ public class MainActivity extends Activity {
                     }
                 })
                 .setPositiveButton("Apply & Reload", (dialog, which) -> {
+                    saveSettings();
                     chatWebSettings.setUserAgentString(modUserAgent());
                     installDocumentStartScripts();
                     chatWebView.reload();
@@ -301,7 +304,8 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        restricted = true;
+        prefs = getSharedPreferences("tinfoil_prefs", Context.MODE_PRIVATE);
+        loadSettings();
 
         // Separate WebView data directory for isolation (sandboxing)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -424,23 +428,13 @@ public class MainActivity extends Activity {
 
                 if (scheme == null || !"https".equalsIgnoreCase(scheme)) {
                     Log.d(TAG, "[shouldInterceptRequest][NON-HTTPS] Blocked: " + urlStr);
-                    return new WebResourceResponse("text/javascript", "UTF-8", null);
+                    return blockedResponse();
                 }
 
-                boolean allowed = false;
                 String host = request.getUrl().getHost();
-                if (host != null) {
-                    for (String domain : allowedDomains) {
-                        if (host.endsWith(domain)) {
-                            allowed = true;
-                            break;
-                        }
-                    }
-                }
-
-                if (!allowed) {
+                if (!isAllowedHost(host)) {
                     Log.d(TAG, "[shouldInterceptRequest][BLOCKED] " + host);
-                    return new WebResourceResponse("text/javascript", "UTF-8", null);
+                    return blockedResponse();
                 }
                 return null;
             }
@@ -465,19 +459,10 @@ public class MainActivity extends Activity {
                     return true;
                 }
 
-                boolean allowed = false;
-                String host = request.getUrl().getHost();
-                if (host != null) {
-                    for (String domain : allowedDomains) {
-                        if (host.endsWith(domain)) {
-                            allowed = true;
-                            break;
-                        }
-                    }
-                }
+                boolean allowed = isAllowedHost(request.getUrl().getHost());
 
                 if (!allowed) {
-                    Log.d(TAG, "[shouldOverrideUrlLoading][BLOCKED] " + host);
+                    Log.d(TAG, "[shouldOverrideUrlLoading][BLOCKED] " + request.getUrl().getHost());
                     return true;
                 }
                 return false;
@@ -553,10 +538,53 @@ public class MainActivity extends Activity {
         chatWebView.clearMatches();
         chatWebView.clearSslPreferences();
         chatCookieManager.removeSessionCookie();
-        chatCookieManager.removeAllCookies(null);
-        CookieManager.getInstance().flush();
-        WebStorage.getInstance().deleteAllData();
-        chatWebView.loadUrl(URL_TO_LOAD);
+        // removeAllCookies is async — only reload after cookies are actually gone,
+        // otherwise the fresh page load can still send stale session cookies.
+        chatCookieManager.removeAllCookies(value -> {
+            CookieManager.getInstance().flush();
+            WebStorage.getInstance().deleteAllData();
+            chatWebView.loadUrl(URL_TO_LOAD);
+        });
+    }
+
+    private void loadSettings() {
+        restricted = prefs.getBoolean("restricted", true);
+        webrtcBlocked = prefs.getBoolean("webrtcBlocked", true);
+        sensorsBlocked = prefs.getBoolean("sensorsBlocked", true);
+        dntEnabled = prefs.getBoolean("dntEnabled", true);
+        timezoneSpoofed = prefs.getBoolean("timezoneSpoofed", true);
+    }
+
+    private void saveSettings() {
+        prefs.edit()
+                .putBoolean("restricted", restricted)
+                .putBoolean("webrtcBlocked", webrtcBlocked)
+                .putBoolean("sensorsBlocked", sensorsBlocked)
+                .putBoolean("dntEnabled", dntEnabled)
+                .putBoolean("timezoneSpoofed", timezoneSpoofed)
+                .apply();
+    }
+
+    // Exact-host or proper subdomain match: "chat.tinfoil.sh" matches "tinfoil.sh",
+    // but "eviltinfoil.sh" does NOT. Fixes whitelist bypass via lookalike domains.
+    private boolean isAllowedHost(String host) {
+        if (host == null) return false;
+        for (String domain : allowedDomains) {
+            if (host.equals(domain) || host.endsWith("." + domain)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Blocked requests get an explicit 403 with a JSON body instead of 200 OK with
+    // text/javascript and an empty body — the old response broke auth-provider JS
+    // (e.g. Clerk) that called response.json() and got a parse error / null.
+    private WebResourceResponse blockedResponse() {
+        return new WebResourceResponse(
+                "application/json", "UTF-8", 403, "Forbidden",
+                Collections.singletonMap("Content-Type", "application/json"),
+                new java.io.ByteArrayInputStream("{}".getBytes()));
     }
 
     private static void initURLs() {
@@ -568,6 +596,7 @@ public class MainActivity extends Activity {
         allowedDomains.add("clerk.tinfoil.sh");
         allowedDomains.add("verification-center.tinfoil.sh");
         allowedDomains.add("clerk.accounts.dev");
+        allowedDomains.add("clerk.dev");
         allowedDomains.add("clerk.com");
         allowedDomains.add("tinfoilsh.github.io");
         allowedDomains.add("cdn.jsdelivr.net");
@@ -624,13 +653,7 @@ public class MainActivity extends Activity {
                 if (url != null) {
                     String host = Uri.parse(url).getHost();
                     if (host != null) {
-                        boolean allowed = false;
-                        for (String domain : allowedDomains) {
-                            if (host.endsWith(domain)) {
-                                allowed = true;
-                                break;
-                            }
-                        }
+                        boolean allowed = isAllowedHost(host);
                         if (!allowed) {
                             ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
                             ClipData clip = ClipData.newPlainText(getString(R.string.app_name), url);
@@ -644,15 +667,10 @@ public class MainActivity extends Activity {
     }
 
     public String modUserAgent() {
-        String newPrefix = "Mozilla/5.0 (X11; Linux " + System.getProperty("os.arch") + ")";
-        String newUserAgent = WebSettings.getDefaultUserAgent(context);
-        try {
-            String prefix = newUserAgent.substring(0, newUserAgent.indexOf(")") + 1);
-            newUserAgent = newUserAgent.replace(prefix, newPrefix);
-        } catch (Exception e) {
-            Log.e(TAG, "Error modifying User-Agent", e);
-        }
-        return newUserAgent;
+        // Desktop Chrome on Linux — common UA, won't trigger bot detection on auth providers.
+        // NOTE: previously used System.getProperty("os.arch"), which leaked the real device
+        // architecture (aarch64) and created a unique, suspicious fingerprint.
+        return "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
     }
 
     @Override
