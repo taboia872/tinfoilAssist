@@ -205,15 +205,15 @@ public class MainActivity extends Activity {
         // Settings dialog — toggle privacy/security options
         btnSettings.setOnClickListener(v -> {
             String[] options = {
-                "Restrict domains (HTTPS + block OAuth)",
-                "Block WebRTC",
-                "Block Device Orientation/Motion",
-                "Do Not Track (DNT)",
-                "Spoof Timezone (random)"
+                getString(R.string.setting_restrict_domains),
+                getString(R.string.setting_block_webrtc),
+                getString(R.string.setting_block_sensors),
+                getString(R.string.setting_dnt),
+                getString(R.string.setting_spoof_tz)
             };
             boolean[] checked = {restricted, webrtcBlocked, sensorsBlocked, dntEnabled, timezoneSpoofed};
             new AlertDialog.Builder(context)
-                .setTitle("Settings")
+                .setTitle(getString(R.string.settings_title))
                 .setMultiChoiceItems(options, checked, (dialog, which, isChecked) -> {
                     if (which == 0) restricted = isChecked;
                     else if (which == 1) webrtcBlocked = isChecked;
@@ -224,13 +224,13 @@ public class MainActivity extends Activity {
                         if (!isChecked) spoofedTimezone = "UTC";
                     }
                 })
-                .setPositiveButton("Apply & Reload", (dialog, which) -> {
+                .setPositiveButton(getString(R.string.setting_apply), (dialog, which) -> {
                     saveSettings();
                     chatWebSettings.setUserAgentString(modUserAgent());
                     installDocumentStartScripts();
                     chatWebView.reload();
                 })
-                .setNegativeButton("Cancel", null)
+                .setNegativeButton(android.R.string.cancel, null)
                 .show();
             hideMenu();
         });

@@ -10,4 +10,11 @@
     <string name="all_urls">Todas as URLs permitidas</string>
     <string name="urls_restricted">URLs restritas</string>
     <string name="url_copied">URL copiada</string>
+    <string name="settings_title">Configurações</string>
+    <string name="setting_restrict_domains">Restringir domínios (HTTPS + bloquear OAuth)</string>
+    <string name="setting_block_webrtc">Bloquear WebRTC</string>
+    <string name="setting_block_sensors">Bloquear orientação/movimento do dispositivo</string>
+    <string name="setting_dnt">Do Not Track (DNT)</string>
+    <string name="setting_spoof_tz">Spoofar fuso horário (aleatório)</string>
+    <string name="setting_apply">Aplicar e recarregar</string>
 </resources>

@@ -19,4 +19,12 @@
     <string name="data_cleared">All data cleared. Reloading…</string>
     <string name="about_title">About TinfoilAssist</string>
     <string name="about_message">TinfoilAssist v1.3.1\n\nA hardened WebView wrapper for Tinfoil Chat (chat.tinfoil.sh).\n\nPrivacy features:\n• Timezone spoofing (IANA-aware, DST-correct)\n• Hardware fingerprint spoofing (CPU, RAM, GPU)\n• WebRTC, sensor, battery &amp; geolocation blocking\n• iframe.contentWindow leak coverage\n• Domain whitelist + OAuth block (Google/Microsoft/Apple)\n• HTTPS-only mode, DNT, desktop User-Agent\n\nAnti-fingerprinting ported from testAssist (github.com/taboia872/testAssist),\nbased on deafenken/notme.\n\nOriginal WebView structure from gptassist by @woheller69 and\ngeminiAssist by @AcideFluorhydrique.\n\nBuilt by vibe coding — IA wrote the code, a human directed the strategy.\n\nLicense: GPL-3.0</string>
+    <!-- Settings dialog -->
+    <string name="settings_title">Settings</string>
+    <string name="setting_restrict_domains">Restrict domains (HTTPS + block OAuth)</string>
+    <string name="setting_block_webrtc">Block WebRTC</string>
+    <string name="setting_block_sensors">Block Device Orientation/Motion</string>
+    <string name="setting_dnt">Do Not Track (DNT)</string>
+    <string name="setting_spoof_tz">Spoof Timezone (random)</string>
+    <string name="setting_apply">Apply &amp; Reload</string>
 </resources>
