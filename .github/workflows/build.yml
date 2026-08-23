@@ -19,11 +19,14 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
     - name: Setup Gradle
+      # gradle/actions/setup-gradle v4 still declares node20 in its metadata;
+      # the runner force-runs it on node24. v5 GA is pending — once released,
+      # bump to @v5 to clear the remaining deprecation warning.
       uses: gradle/actions/setup-gradle@v4
     - name: Build Debug APK
       run: ./gradlew assembleDebug --stacktrace --info
     - name: Upload APK Artifact
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v6
       with:
         name: TinfoilAssist
         path: app/build/outputs/apk/debug/TinfoilAssist-*.apk
