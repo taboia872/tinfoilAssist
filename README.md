@@ -46,12 +46,23 @@ O app spooofa o timezone do dispositivo em toda a superfície do `Date` e do `In
 Todo tráfego de rede passa por `shouldInterceptRequest` e `shouldOverrideUrlLoading`. Apenas estes domínios são permitidos:
 
 - `tinfoil.sh`, `chat.tinfoil.sh`, `api.tinfoil.sh`, `atc.tinfoil.sh`, `clerk.tinfoil.sh`, `verification-center.tinfoil.sh`
-- `clerk.accounts.dev`, `clerk.com` — autenticação Clerk (email/senha)
+- `clerk.accounts.dev`, `clerk.dev`, `clerk.com` — autenticação Clerk (email/senha)
 - `tinfoilsh.github.io`
 - `cdn.jsdelivr.net` — CDN de assets
 - **Bloqueado:** `google.com`, `accounts.google.com`, `googleusercontent.com` (login Google OAuth), `microsoft.com`, `microsoftonline.com`, `live.com` (login Microsoft), `appleid.apple.com` (login Apple), `gstatic.com`, `googleapis.com`, `apple.com` (recursos Google/Apple — não utilizados pelo Tinfoil Chat)
 
-Tudo o que não estiver na lista é bloqueado com uma resposta vazia.
+O matching da whitelist é estrito (`host.equals(d) || host.endsWith("." + d)`) — domínios lookalike como `evilclerk.com` não passam. Requisições bloqueadas recebem `403` com corpo JSON vazio.
+
+### Ponte de login (workaround para bug do Clerk)
+
+A página dedicada `chat.tinfoil.sh/signin` tem um bug no Clerk: mesmo com código de verificação de e-mail correto, o fluxo falha com *"no matching user"* tanto para contas novas quanto existentes. O mesmo fluxo funciona pelo modal de login em `tinfoil.sh`.
+
+Como os dois domínios compartilham o cookie de sessão do Clerk, o app faz uma ponte:
+
+1. Toda navegação para `chat.tinfoil.sh/signin` é interceptada (via `onPageStarted` para navegações completas e `doUpdateVisitedHistory` para navegações SPA/pushState)
+2. Um diálogo oferece abrir `tinfoil.sh` no próprio WebView
+3. Após o login pelo modal, o Clerk redireciona para `dash.tinfoil.sh`
+4. O app detecta esse redirect em `onPageFinished` e volta automaticamente para `chat.tinfoil.sh` — já autenticado
 
 ### Outros mecanismos
 
@@ -62,6 +73,9 @@ Tudo o que não estiver na lista é bloqueado com uma resposta vazia.
 - **Sem telemetria própria**: zero analytics, zero SDKs de rastreamento, zero ads
 - **Cookies flush em onPause/onPageFinished**: garante que cookies de sessão sejam persistidos
 - **Settings persistentes**: as opções de privacidade (restrição de domínios, WebRTC, sensores, DNT, timezone spoof) são salvas em SharedPreferences e sobrevivem a reinícios do app
+- **Assinatura fixa entre builds**: os APKs do CI são assinados com um keystore persistente (guardado em GitHub Secrets), então **atualizações instalam por cima sem precisar desinstalar** a versão anterior
+- **Sem backup no Google Drive**: `android:allowBackup="false"` — cookies de sessão nunca saem do dispositivo via backup
+- **Cleartext bloqueado via networkSecurityConfig**: `network_security_config.xml` com `cleartextTrafficPermitted="false"` app-wide
 
 ---
 
