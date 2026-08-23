@@ -23,8 +23,19 @@ jobs:
       # the runner force-runs it on node24. v5 GA is pending — once released,
       # bump to @v5 to clear the remaining deprecation warning.
       uses: gradle/actions/setup-gradle@v4
+    - name: Decode signing keystore from Secrets
+      # Decode the persistent keystore (base64) into a file so apksigner can use it.
+      # Without this, every build would produce an APK signed with a fresh debug
+      # key, forcing users to uninstall before updating.
+      run: |
+        echo "${{ secrets.TINFOIL_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/tinfoil.keystore"
+        echo "KEYSTORE_PATH=$RUNNER_TEMP/tinfoil.keystore" >> "$GITHUB_ENV"
     - name: Build Debug APK
       run: ./gradlew assembleDebug --stacktrace --info
+      env:
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v6
       with:
