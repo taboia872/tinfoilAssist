@@ -31,5 +31,4 @@
     <string name="bridge_title">Sign in via tinfoil.sh</string>
     <string name="bridge_message">The sign-in page on chat.tinfoil.sh has a known issue accepting new and existing accounts. You can sign in through the main site instead — you\'ll be brought back here automatically once you\'re logged in.</string>
     <string name="bridge_go">Open tinfoil.sh</string>
-    <string name="bridge_stay">Try /signin anyway</string>
 </resources>

@@ -69,10 +69,6 @@ public class MainActivity extends Activity {
     private WebSettings chatWebSettings = null;
     private CookieManager chatCookieManager = null;
     private SharedPreferences prefs = null;
-    // Set when the user picks "try /signin anyway" in the login-bridge dialog.
-    // Lets the next navigation to chat.tinfoil.sh/signin through without
-    // re-showing the dialog (avoids an infinite loop).
-    private boolean bypassLoginBridgeOnce = false;
     private final Context context = this;
     private SwipeTouchListener swipeTouchListener;
     private static final String TAG = "tinfoilAssist";
@@ -397,6 +393,18 @@ public class MainActivity extends Activity {
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
+                // Bridge: the dedicated /signin page on chat.tinfoil.sh is broken
+                // in Clerk — even valid email codes end in "no matching user".
+                // The same flow works via the modal on tinfoil.sh. Stop loading
+                // the broken page and offer the bridge. shouldOverrideUrlLoading
+                // is NOT reliable here because Clerk triggers /signin via JS
+                // redirect, which bypasses that callback entirely.
+                if (url != null && url.startsWith("https://chat.tinfoil.sh/signin")) {
+                    Log.d(TAG, "[bridge] intercepted navigation to broken /signin");
+                    view.stopLoading();
+                    showLoginBridgeDialog();
+                    return;
+                }
                 // Fallback for WebViews without DOCUMENT_START_SCRIPT support.
                 // The primary path installs scripts via addDocumentStartJavaScript
                 // which fires before page scripts; this is the legacy safety net.
@@ -475,20 +483,6 @@ public class MainActivity extends Activity {
                 if (!allowed) {
                     Log.d(TAG, "[shouldOverrideUrlLoading][BLOCKED] " + request.getUrl().getHost());
                     return true;
-                }
-
-                // Bridge: chat.tinfoil.sh/signin has a bug with new/existing accounts
-                // ("no matching user" after email verification). The same flow works
-                // when done via the modal on tinfoil.sh. Intercept and offer the bridge.
-                String host = request.getUrl().getHost();
-                String path = request.getUrl().getPath();
-                if ("chat.tinfoil.sh".equals(host) && path != null && path.startsWith("/signin")) {
-                    if (bypassLoginBridgeOnce) {
-                        bypassLoginBridgeOnce = false;
-                        return false; // Let it through this once
-                    }
-                    showLoginBridgeDialog();
-                    return true; // Cancel navigation to the broken /signin page
                 }
                 return false;
             }
@@ -580,10 +574,10 @@ public class MainActivity extends Activity {
         timezoneSpoofed = prefs.getBoolean("timezoneSpoofed", true);
     }
 
-    // chat.tinfoil.sh/signin has a Clerk bug ("no matching user" after code
-    // verification). The same flow works on tinfoil.sh's sign-in modal.
-    // This dialog offers to bridge the user there; onPageFinished catches
-    // the dash.tinfoil.sh redirect and brings them back to the chat.
+    // chat.tinfoil.sh/signin is broken at the Clerk level (valid codes end in
+    // "no matching user"). The modal flow on tinfoil.sh works. This dialog
+    // offers the bridge; onPageFinished catches the dash.tinfoil.sh redirect
+    // and brings the user back to the chat as authenticated.
     private void showLoginBridgeDialog() {
         new AlertDialog.Builder(context)
                 .setTitle(getString(R.string.bridge_title))
@@ -591,11 +585,7 @@ public class MainActivity extends Activity {
                 .setPositiveButton(getString(R.string.bridge_go), (dialog, which) -> {
                     chatWebView.loadUrl("https://tinfoil.sh");
                 })
-                .setNegativeButton(getString(R.string.bridge_stay), (dialog, which) -> {
-                    // User wants to try /signin anyway — bypass interception this once.
-                    bypassLoginBridgeOnce = true;
-                    chatWebView.loadUrl("https://chat.tinfoil.sh/signin");
-                })
+                .setNegativeButton(android.R.string.cancel, null)
                 .show();
     }
 
