@@ -393,25 +393,34 @@ public class MainActivity extends Activity {
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
-                // Bridge: the dedicated /signin page on chat.tinfoil.sh is broken
-                // in Clerk — even valid email codes end in "no matching user".
-                // The same flow works via the modal on tinfoil.sh. Stop loading
-                // the broken page and offer the bridge. shouldOverrideUrlLoading
-                // is NOT reliable here because Clerk triggers /signin via JS
-                // redirect, which bypasses that callback entirely.
-                if (url != null && url.startsWith("https://chat.tinfoil.sh/signin")) {
-                    Log.d(TAG, "[bridge] intercepted navigation to broken /signin");
-                    view.stopLoading();
-                    showLoginBridgeDialog();
-                    return;
-                }
-                // Fallback for WebViews without DOCUMENT_START_SCRIPT support.
-                // The primary path installs scripts via addDocumentStartJavaScript
-                // which fires before page scripts; this is the legacy safety net.
+                // Bridge (full navigation): Clerk may land on /signin via document
+                // load. SPAs use pushState and skip this — see doUpdateVisitedHistory.
+                if (interceptBrokenSignin(view, url)) return;
                 if (!documentStartSupported()) {
                     view.evaluateJavascript(buildHardeningScript(), null);
                     view.evaluateJavascript(buildTzSpoofScript(), null);
                 }
+            }
+
+            @Override
+            public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
+                super.doUpdateVisitedHistory(view, url, isReload);
+                // Bridge (SPA pushState): chat.tinfoil.sh is a Next.js SPA, so in-page
+                // navigation to /signin goes through history.pushState and never
+                // fires onPageStarted. doUpdateVisitedHistory catches it.
+                interceptBrokenSignin(view, url);
+            }
+
+            // Returns true if the broken /signin URL was intercepted and the
+            // bridge dialog was shown; false otherwise.
+            private boolean interceptBrokenSignin(WebView view, String url) {
+                if (url != null && url.startsWith("https://chat.tinfoil.sh/signin")) {
+                    Log.d(TAG, "[bridge] intercepted navigation to broken /signin: " + url);
+                    view.stopLoading();
+                    showLoginBridgeDialog();
+                    return true;
+                }
+                return false;
             }
 
             @Override
