@@ -55,7 +55,7 @@ Tudo o que não estiver na lista é bloqueado com uma resposta vazia.
 
 ### Outros mecanismos
 
-- **User-Agent spoofed**: UA fixo de desktop Chrome em Linux (`Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 ... Chrome/131.0.0.0 Safari/537.36`) — esconde que é mobile e não vaza a arquitetura real do dispositivo (antes usava `os.arch`, que retornava `aarch64` e criava um fingerprint único e suspeito para provedores de auth)
+- **User-Agent spoofed**: UA fixo de desktop Chrome em Windows (`Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ... Chrome/137.0.0.0 Safari/537.36`) — o UA real mais comum do mundo, esconde que é mobile e não vaza a arquitetura do dispositivo (antes usava `os.arch`, que retornava `aarch64` e criava um fingerprint único e suspeito para provedores de auth)
 - **WebView Metrics Opt-Out**: `<meta-data android:name="android.webkit.WebView.MetricsOptOut" android:value="true" />` desativa telemetria do WebView do Google
 - **HTTPS only**: conexões não-HTTPS são bloqueadas por padrão
 - **Sandbox de dados**: `setDataDirectorySuffix("tinfoil_chat")` isola os dados do WebView do resto do sistema

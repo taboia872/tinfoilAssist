@@ -667,10 +667,12 @@ public class MainActivity extends Activity {
     }
 
     public String modUserAgent() {
-        // Desktop Chrome on Linux — common UA, won't trigger bot detection on auth providers.
-        // NOTE: previously used System.getProperty("os.arch"), which leaked the real device
+        // Desktop Chrome on Windows — the most common real browser UA, so it blends
+        // in with millions of users and won't trigger auth-provider bot checks.
+        // Previously used System.getProperty("os.arch"), which leaked the device
         // architecture (aarch64) and created a unique, suspicious fingerprint.
-        return "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+        // Update the Chrome version periodically to match current stable releases.
+        return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
     }
 
     @Override
