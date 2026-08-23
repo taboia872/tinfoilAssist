@@ -69,6 +69,10 @@ public class MainActivity extends Activity {
     private WebSettings chatWebSettings = null;
     private CookieManager chatCookieManager = null;
     private SharedPreferences prefs = null;
+    // Set when the user picks "try /signin anyway" in the login-bridge dialog.
+    // Lets the next navigation to chat.tinfoil.sh/signin through without
+    // re-showing the dialog (avoids an infinite loop).
+    private boolean bypassLoginBridgeOnce = false;
     private final Context context = this;
     private SwipeTouchListener swipeTouchListener;
     private static final String TAG = "tinfoilAssist";
@@ -408,6 +412,13 @@ public class MainActivity extends Activity {
                 if (chatCookieManager != null) {
                     chatCookieManager.flush();
                 }
+                // Bridge: login on tinfoil.sh redirects to dash.tinfoil.sh on success.
+                // At this point the Clerk session cookie is set, so chat.tinfoil.sh
+                // will be authenticated. Send the user back to the chat.
+                if (url != null && url.startsWith("https://dash.tinfoil.sh")) {
+                    Log.d(TAG, "[bridge] login completed on tinfoil.sh, returning to chat");
+                    view.loadUrl(URL_TO_LOAD);
+                }
             }
 
             @Override
@@ -464,6 +475,20 @@ public class MainActivity extends Activity {
                 if (!allowed) {
                     Log.d(TAG, "[shouldOverrideUrlLoading][BLOCKED] " + request.getUrl().getHost());
                     return true;
+                }
+
+                // Bridge: chat.tinfoil.sh/signin has a bug with new/existing accounts
+                // ("no matching user" after email verification). The same flow works
+                // when done via the modal on tinfoil.sh. Intercept and offer the bridge.
+                String host = request.getUrl().getHost();
+                String path = request.getUrl().getPath();
+                if ("chat.tinfoil.sh".equals(host) && path != null && path.startsWith("/signin")) {
+                    if (bypassLoginBridgeOnce) {
+                        bypassLoginBridgeOnce = false;
+                        return false; // Let it through this once
+                    }
+                    showLoginBridgeDialog();
+                    return true; // Cancel navigation to the broken /signin page
                 }
                 return false;
             }
@@ -553,6 +578,25 @@ public class MainActivity extends Activity {
         sensorsBlocked = prefs.getBoolean("sensorsBlocked", true);
         dntEnabled = prefs.getBoolean("dntEnabled", true);
         timezoneSpoofed = prefs.getBoolean("timezoneSpoofed", true);
+    }
+
+    // chat.tinfoil.sh/signin has a Clerk bug ("no matching user" after code
+    // verification). The same flow works on tinfoil.sh's sign-in modal.
+    // This dialog offers to bridge the user there; onPageFinished catches
+    // the dash.tinfoil.sh redirect and brings them back to the chat.
+    private void showLoginBridgeDialog() {
+        new AlertDialog.Builder(context)
+                .setTitle(getString(R.string.bridge_title))
+                .setMessage(getString(R.string.bridge_message))
+                .setPositiveButton(getString(R.string.bridge_go), (dialog, which) -> {
+                    chatWebView.loadUrl("https://tinfoil.sh");
+                })
+                .setNegativeButton(getString(R.string.bridge_stay), (dialog, which) -> {
+                    // User wants to try /signin anyway — bypass interception this once.
+                    bypassLoginBridgeOnce = true;
+                    chatWebView.loadUrl("https://chat.tinfoil.sh/signin");
+                })
+                .show();
     }
 
     private void saveSettings() {

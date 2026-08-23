@@ -27,4 +27,9 @@
     <string name="setting_dnt">Do Not Track (DNT)</string>
     <string name="setting_spoof_tz">Spoof Timezone (random)</string>
     <string name="setting_apply">Apply &amp; Reload</string>
+    <!-- Login bridge (workaround for broken /signin on chat.tinfoil.sh) -->
+    <string name="bridge_title">Sign in via tinfoil.sh</string>
+    <string name="bridge_message">The sign-in page on chat.tinfoil.sh has a known issue accepting new and existing accounts. You can sign in through the main site instead — you\'ll be brought back here automatically once you\'re logged in.</string>
+    <string name="bridge_go">Open tinfoil.sh</string>
+    <string name="bridge_stay">Try /signin anyway</string>
 </resources>
