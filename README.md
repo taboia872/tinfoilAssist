@@ -93,7 +93,7 @@ Por ser um WebView, este app herda algumas limitações estruturais:
 
 5. **Permissões de microfone**: O app precisa de `RECORD_AUDIO` para o recurso de voz do Tinfoil. Embora só seja concedido sob demanda, a permissão existe no manifest.
 
-6. **User-Agent identifica Linux**: Embora esconda que é mobile, o UA `X11; Linux x86_64` é incomum para acessar um chat de IA, o que pode tecnicamente ser usado para fingerprinting reverso.
+6. **User-Agent desktop genérico**: O UA `Windows NT 10.0; Win64; x64 ... Chrome/137.0.0.0` é o mais comum do mundo e esconde que é mobile, mas ainda assim permanece identificável como WebView por outros sinais (viewport, APIs disponíveis). Dimensionar janelas mobile com um UA desktop pode, em raros casos, fazer serviços servirem layout desktop.
 
 ---
 
@@ -143,6 +143,10 @@ O botão de seta permanece sempre visível. Quando o menu está fechado, só a s
 Para revelar o botão de seta: deslize de cima para baixo no topo da página (quando o conteúdo estiver no topo). Deslizar de baixo para cima esconde o botão e fecha o menu.
 
 ---
+
+## 📦 Download
+
+Os APKs assinados ficam disponíveis em **[Releases](https://github.com/taboia872/tinfoilAssist/releases)**. Como a assinatura é fixa entre builds (keystore persistente em GitHub Secrets), as atualizações instalam **por cima** da versão anterior — sem precisar desinstalar.
 
 ## 🏗️ Compilando
 
