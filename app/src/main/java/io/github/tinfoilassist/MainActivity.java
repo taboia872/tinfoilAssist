@@ -83,22 +83,6 @@ public class MainActivity extends Activity {
     private static boolean fullscreenEnabled = false;
     private static String spoofedTimezone = "UTC";
 
-    /**
-     * Surgical exception for reCAPTCHA: allow ONLY the /recaptcha/* paths on
-     * google.com / gstatic.com / recaptcha.net, keeping all other Google
-     * endpoints blocked. Tinfoil uses Clerk auth which may gate behind
-     * reCAPTCHA on signup/login.
-     */
-    private static boolean isRecaptchaRequest(android.net.Uri uri) {
-        String host = uri.getHost();
-        if (host == null) return false;
-        boolean isGoogleHost = host.equals("google.com") || host.endsWith(".google.com")
-                || host.equals("gstatic.com") || host.endsWith(".gstatic.com")
-                || host.equals("recaptcha.net") || host.endsWith(".recaptcha.net");
-        if (!isGoogleHost) return false;
-        String path = uri.getPath();
-        return path != null && path.startsWith("/recaptcha/");
-    }
     private static final ArrayList<String> allowedDomains = new ArrayList<>();
 
     private ValueCallback<Uri[]> mUploadMessage;
@@ -518,7 +502,7 @@ public class MainActivity extends Activity {
                 }
 
                 String host = request.getUrl().getHost();
-                if (!isAllowedHost(host) && !isRecaptchaRequest(request.getUrl())) {
+                if (!isAllowedHost(host)) {
                     Log.d(TAG, "[shouldInterceptRequest][BLOCKED] " + host);
                     return blockedResponse();
                 }
@@ -546,7 +530,6 @@ public class MainActivity extends Activity {
                 }
 
                 boolean allowed = isAllowedHost(request.getUrl().getHost());
-                if (!allowed && isRecaptchaRequest(request.getUrl())) allowed = true;
 
                 if (!allowed) {
                     Log.d(TAG, "[shouldOverrideUrlLoading][BLOCKED] " + request.getUrl().getHost());
