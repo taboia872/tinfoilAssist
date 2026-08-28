@@ -61,6 +61,7 @@ public class MainActivity extends Activity {
     private WebView chatWebView = null;
     private ImageButton btnMenuToggle = null;
     private ImageButton btnReload = null;
+    private ImageButton btnFullscreen = null;
     private ImageButton btnClearData = null;
     private ImageButton btnAbout = null;
     private ImageButton btnSettings = null;
@@ -78,8 +79,26 @@ public class MainActivity extends Activity {
     private static boolean sensorsBlocked = true;
     private static boolean dntEnabled = true;
     private static boolean timezoneSpoofed = true;
+    private static boolean desktopModeEnabled = false;
+    private static boolean fullscreenEnabled = false;
     private static String spoofedTimezone = "UTC";
 
+    /**
+     * Surgical exception for reCAPTCHA: allow ONLY the /recaptcha/* paths on
+     * google.com / gstatic.com / recaptcha.net, keeping all other Google
+     * endpoints blocked. Tinfoil uses Clerk auth which may gate behind
+     * reCAPTCHA on signup/login.
+     */
+    private static boolean isRecaptchaRequest(android.net.Uri uri) {
+        String host = uri.getHost();
+        if (host == null) return false;
+        boolean isGoogleHost = host.equals("google.com") || host.endsWith(".google.com")
+                || host.equals("gstatic.com") || host.endsWith(".gstatic.com")
+                || host.equals("recaptcha.net") || host.endsWith(".recaptcha.net");
+        if (!isGoogleHost) return false;
+        String path = uri.getPath();
+        return path != null && path.startsWith("/recaptcha/");
+    }
     private static final ArrayList<String> allowedDomains = new ArrayList<>();
 
     private ValueCallback<Uri[]> mUploadMessage;
@@ -127,9 +146,21 @@ public class MainActivity extends Activity {
     }
 
     private String buildHardeningScript() {
+        int cores = desktopModeEnabled ? 8 : 4;
+        int memory = desktopModeEnabled ? 8 : 4;
+        String gpuVendor = desktopModeEnabled
+            ? "Google Inc. (Intel)"
+            : "Qualcomm";
+        String gpuRenderer = desktopModeEnabled
+            ? "ANGLE (Intel, Intel(R) UHD Graphics 630, OpenGL 4.1)"
+            : "Adreno (TM) 650";
         String json = "{\"sensorsBlocked\":" + sensorsBlocked
             + ",\"dntEnabled\":" + dntEnabled
-            + ",\"webrtcBlocked\":" + webrtcBlocked + "}";
+            + ",\"webrtcBlocked\":" + webrtcBlocked
+            + ",\"spoofCores\":" + cores
+            + ",\"spoofMemory\":" + memory
+            + ",\"spoofGpuVendor\":\"" + gpuVendor + "\""
+            + ",\"spoofGpuRenderer\":\"" + gpuRenderer + "\"}";
         String js = readAsset("hardening.js");
         return "window.__TA_SETTINGS__ = " + json + ";\n" + js;
     }
@@ -178,6 +209,16 @@ public class MainActivity extends Activity {
             hideMenu();
         });
 
+        // Fullscreen toggle — smooth content expand/collapse
+        btnFullscreen.setOnClickListener(v -> {
+            fullscreenEnabled = !fullscreenEnabled;
+            applyFullscreen();
+            Toast.makeText(context,
+                fullscreenEnabled ? "Fullscreen on" : "Fullscreen off",
+                Toast.LENGTH_SHORT).show();
+            hideMenu();
+        });
+
         // Clear all data with confirmation dialog
         btnClearData.setOnClickListener(v -> {
             new AlertDialog.Builder(context)
@@ -209,9 +250,10 @@ public class MainActivity extends Activity {
                 getString(R.string.setting_block_webrtc),
                 getString(R.string.setting_block_sensors),
                 getString(R.string.setting_dnt),
-                getString(R.string.setting_spoof_tz)
+                getString(R.string.setting_spoof_tz),
+                getString(R.string.setting_desktop_mode)
             };
-            boolean[] checked = {restricted, webrtcBlocked, sensorsBlocked, dntEnabled, timezoneSpoofed};
+            boolean[] checked = {restricted, webrtcBlocked, sensorsBlocked, dntEnabled, timezoneSpoofed, desktopModeEnabled};
             new AlertDialog.Builder(context)
                 .setTitle(getString(R.string.settings_title))
                 .setMultiChoiceItems(options, checked, (dialog, which, isChecked) -> {
@@ -223,6 +265,7 @@ public class MainActivity extends Activity {
                         timezoneSpoofed = isChecked;
                         if (!isChecked) spoofedTimezone = "UTC";
                     }
+                    else if (which == 5) desktopModeEnabled = isChecked;
                 })
                 .setPositiveButton(getString(R.string.setting_apply), (dialog, which) -> {
                     saveSettings();
@@ -260,7 +303,7 @@ public class MainActivity extends Activity {
     private void showMenu() {
         menuVisible = true;
         // Show action buttons immediately (no fade)
-        int[] btnIds = {R.id.btnReload, R.id.btnClearData, R.id.btnSettings, R.id.btnAbout};
+        int[] btnIds = {R.id.btnReload, R.id.btnFullscreen, R.id.btnClearData, R.id.btnSettings, R.id.btnAbout};
         for (int btnId : btnIds) {
             ImageButton btn = menuBar.findViewById(btnId);
             btn.setAlpha(1f);
@@ -292,7 +335,7 @@ public class MainActivity extends Activity {
             .translationX(slideDistance)
             .setDuration(500)
             .withEndAction(() -> {
-                int[] btnIds = {R.id.btnReload, R.id.btnClearData, R.id.btnSettings, R.id.btnAbout};
+                int[] btnIds = {R.id.btnReload, R.id.btnFullscreen, R.id.btnClearData, R.id.btnSettings, R.id.btnAbout};
                 for (int btnId : btnIds) {
                     ImageButton btn = menuBar.findViewById(btnId);
                     btn.setVisibility(View.GONE);
@@ -322,12 +365,27 @@ public class MainActivity extends Activity {
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         super.onCreate(savedInstanceState);
+        // Edge-to-edge window: app draws behind system bars. Insets are applied
+        // as padding on the root so content expands/contracts with bar visibility.
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
         setContentView(R.layout.activity_main);
+
+        final android.view.View rootView = findViewById(android.R.id.content);
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(rootView,
+            (v, windowInsets) -> {
+                androidx.core.graphics.Insets bars = windowInsets.getInsets(
+                    androidx.core.view.WindowInsetsCompat.Type.systemBars());
+                animatePadding(v, bars.left, bars.top, bars.right, bars.bottom);
+                return windowInsets;
+            });
 
         chatWebView = findViewById(R.id.chatWebView);
         registerForContextMenu(chatWebView);
         btnMenuToggle = findViewById(R.id.btnMenuToggleInner);
         btnReload = findViewById(R.id.btnReload);
+        btnFullscreen = findViewById(R.id.btnFullscreen);
         btnClearData = findViewById(R.id.btnClearData);
         btnSettings = findViewById(R.id.btnSettings);
         btnAbout = findViewById(R.id.btnAbout);
@@ -460,7 +518,7 @@ public class MainActivity extends Activity {
                 }
 
                 String host = request.getUrl().getHost();
-                if (!isAllowedHost(host)) {
+                if (!isAllowedHost(host) && !isRecaptchaRequest(request.getUrl())) {
                     Log.d(TAG, "[shouldInterceptRequest][BLOCKED] " + host);
                     return blockedResponse();
                 }
@@ -488,6 +546,7 @@ public class MainActivity extends Activity {
                 }
 
                 boolean allowed = isAllowedHost(request.getUrl().getHost());
+                if (!allowed && isRecaptchaRequest(request.getUrl())) allowed = true;
 
                 if (!allowed) {
                     Log.d(TAG, "[shouldOverrideUrlLoading][BLOCKED] " + request.getUrl().getHost());
@@ -581,6 +640,7 @@ public class MainActivity extends Activity {
         sensorsBlocked = prefs.getBoolean("sensorsBlocked", true);
         dntEnabled = prefs.getBoolean("dntEnabled", true);
         timezoneSpoofed = prefs.getBoolean("timezoneSpoofed", true);
+        desktopModeEnabled = prefs.getBoolean("desktopModeEnabled", false);
     }
 
     // chat.tinfoil.sh/signin is broken at the Clerk level (valid codes end in
@@ -605,6 +665,7 @@ public class MainActivity extends Activity {
                 .putBoolean("sensorsBlocked", sensorsBlocked)
                 .putBoolean("dntEnabled", dntEnabled)
                 .putBoolean("timezoneSpoofed", timezoneSpoofed)
+                .putBoolean("desktopModeEnabled", desktopModeEnabled)
                 .apply();
     }
 
@@ -710,12 +771,56 @@ public class MainActivity extends Activity {
     }
 
     public String modUserAgent() {
-        // Desktop Chrome on Windows — the most common real browser UA, so it blends
-        // in with millions of users and won't trigger auth-provider bot checks.
-        // Previously used System.getProperty("os.arch"), which leaked the device
-        // architecture (aarch64) and created a unique, suspicious fingerprint.
-        // Update the Chrome version periodically to match current stable releases.
-        return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
+        if (desktopModeEnabled) {
+            // Desktop Chrome on Windows — most common real browser UA
+            return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
+        }
+        // Default: generic mobile Chrome Android (matches the WebView context)
+        return "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36";
+    }
+
+    private android.animation.ValueAnimator paddingAnimator;
+
+    private void animatePadding(final android.view.View v,
+                                final int targetLeft, final int targetTop,
+                                final int targetRight, final int targetBottom) {
+        if (paddingAnimator != null && paddingAnimator.isRunning()) {
+            paddingAnimator.cancel();
+        }
+        final int startLeft = v.getPaddingLeft();
+        final int startTop = v.getPaddingTop();
+        final int startRight = v.getPaddingRight();
+        final int startBottom = v.getPaddingBottom();
+        if (startLeft == targetLeft && startTop == targetTop
+                && startRight == targetRight && startBottom == targetBottom) {
+            return;
+        }
+        paddingAnimator = android.animation.ValueAnimator.ofFloat(0f, 1f);
+        paddingAnimator.setDuration(300);
+        paddingAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator());
+        paddingAnimator.addUpdateListener(anim -> {
+            float t = (Float) anim.getAnimatedValue();
+            v.setPadding(
+                (int)(startLeft   + (targetLeft   - startLeft)   * t),
+                (int)(startTop    + (targetTop    - startTop)    * t),
+                (int)(startRight  + (targetRight  - startRight)  * t),
+                (int)(startBottom + (targetBottom - startBottom) * t));
+        });
+        paddingAnimator.start();
+    }
+
+    private void applyFullscreen() {
+        androidx.core.view.WindowInsetsControllerCompat controller =
+            androidx.core.view.WindowCompat.getInsetsController(
+                getWindow(), getWindow().getDecorView());
+        controller.setSystemBarsBehavior(
+            androidx.core.view.WindowInsetsControllerCompat
+                .BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        if (fullscreenEnabled) {
+            controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars());
+        } else {
+            controller.show(androidx.core.view.WindowInsetsCompat.Type.systemBars());
+        }
     }
 
     @Override

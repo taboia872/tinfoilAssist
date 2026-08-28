@@ -16,6 +16,7 @@
     <string name="setting_block_sensors">Bloquear orientação/movimento do dispositivo</string>
     <string name="setting_dnt">Do Not Track (DNT)</string>
     <string name="setting_spoof_tz">Spoofar fuso horário (aleatório)</string>
+    <string name="setting_desktop_mode">Modo desktop (UA + spoof de hardware)</string>
     <string name="setting_apply">Aplicar e recarregar</string>
     <string name="bridge_title">Entrar via tinfoil.sh</string>
     <string name="bridge_message">A página de login em chat.tinfoil.sh tem um problema conhecido para aceitar contas novas e existentes. Você pode entrar pelo site principal — voltaremos automaticamente para cá quando o login terminar.</string>

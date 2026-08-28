@@ -26,6 +26,7 @@
     <string name="setting_block_sensors">Block Device Orientation/Motion</string>
     <string name="setting_dnt">Do Not Track (DNT)</string>
     <string name="setting_spoof_tz">Spoof Timezone (random)</string>
+    <string name="setting_desktop_mode">Desktop mode (UA + hardware spoof)</string>
     <string name="setting_apply">Apply &amp; Reload</string>
     <!-- Login bridge (workaround for broken /signin on chat.tinfoil.sh) -->
     <string name="bridge_title">Sign in via tinfoil.sh</string>
