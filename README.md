@@ -1,5 +1,9 @@
 # TinfoilAssist
 
+<p align="center">
+  <img src="docs/icon.png" width="128" alt="TinfoilAssist icon">
+</p>
+
 Um wrapper WebView Android endurecido para o [Tinfoil Chat](https://chat.tinfoil.sh), com foco em privacidade máxima.
 
 > **Aviso:** Este é um projeto independente, não oficial, não afiliado à Tinfoil Inc.
