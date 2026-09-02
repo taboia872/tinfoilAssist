@@ -45,6 +45,8 @@ import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.webkit.URLUtilCompat;
+import androidx.webkit.UserAgentMetadata;
+import androidx.webkit.WebSettingsCompat;
 import androidx.webkit.WebViewCompat;
 import androidx.webkit.WebViewFeature;
 import androidx.webkit.ScriptHandler;
@@ -254,6 +256,7 @@ public class MainActivity extends Activity {
                 .setPositiveButton(getString(R.string.setting_apply), (dialog, which) -> {
                     saveSettings();
                     chatWebSettings.setUserAgentString(modUserAgent());
+                    applyUserAgentMetadata();
                     installDocumentStartScripts();
                     chatWebView.reload();
                 })
@@ -577,6 +580,7 @@ public class MainActivity extends Activity {
         chatWebSettings.setSaveFormData(false);
         chatWebSettings.setGeolocationEnabled(false);
         chatWebSettings.setUserAgentString(modUserAgent());
+        applyUserAgentMetadata();
 
         // Install document_start scripts — fires before page scripts on every
         // navigation. This is the primary injection path; onPageStarted fallback
@@ -755,11 +759,45 @@ public class MainActivity extends Activity {
 
     public String modUserAgent() {
         if (desktopModeEnabled) {
-            // Desktop Chrome on Windows — most common real browser UA
-            return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36";
+            // Brave/Linux desktop UA — uncommon fingerprint, avoids the crowded
+            // Windows-UA crowd and keeps us off "stock Chrome on Windows" lists.
+            return "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36";
         }
-        // Default: generic mobile Chrome Android (matches the WebView context)
+        // Default: generic mobile Chrome on Android (matches the WebView context)
         return "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Mobile Safari/537.36";
+    }
+
+    /**
+     * Build UserAgentMetadata (Client Hints / navigator.userAgentData) aligned with
+     * the current User-Agent string. Without this, WebView ships its factory UA-CH
+     * which contradicts our spoofed UA, letting anti-bot (Alibaba AWSC, Cloudflare,
+     * etc.) detect the inconsistency and reject sessions.
+     */
+    private void applyUserAgentMetadata() {
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.USER_AGENT_METADATA)) return;
+        try {
+            boolean mobile = !desktopModeEnabled;
+            UserAgentMetadata.BrandVersion chromium = new UserAgentMetadata.BrandVersion.Builder()
+                    .setBrand("Chromium").setMajorVersion("152").setFullVersion("152.0.0.0").build();
+            UserAgentMetadata.BrandVersion chromeBrand = new UserAgentMetadata.BrandVersion.Builder()
+                    .setBrand("Google Chrome").setMajorVersion("152").setFullVersion("152.0.0.0").build();
+            UserAgentMetadata.BrandVersion notABrand = new UserAgentMetadata.BrandVersion.Builder()
+                    .setBrand("Not(A:Brand").setMajorVersion("24").setFullVersion("24.0.0.0").build();
+            UserAgentMetadata meta = new UserAgentMetadata.Builder()
+                    .setBrandVersionList(java.util.Arrays.asList(chromium, chromeBrand, notABrand))
+                    .setFullVersion("152.0.0.0")
+                    .setPlatform(mobile ? "Android" : "Linux")
+                    .setPlatformVersion(mobile ? "10.0.0" : "6.8.0")
+                    .setArchitecture(mobile ? "" : "x86")
+                    .setModel("")
+                    .setMobile(mobile)
+                    .setBitness(mobile ? 0 : 64)
+                    .setWow64(false)
+                    .build();
+            WebSettingsCompat.setUserAgentMetadata(chatWebSettings, meta);
+        } catch (Exception e) {
+            android.util.Log.w("tinfoilAssist", "setUserAgentMetadata failed: " + e.getMessage());
+        }
     }
 
     private android.animation.ValueAnimator paddingAnimator;

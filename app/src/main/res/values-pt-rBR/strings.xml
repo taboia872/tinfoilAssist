@@ -21,4 +21,6 @@
     <string name="bridge_title">Entrar via tinfoil.sh</string>
     <string name="bridge_message">A página de login em chat.tinfoil.sh tem um problema conhecido para aceitar contas novas e existentes. Você pode entrar pelo site principal — voltaremos automaticamente para cá quando o login terminar.</string>
     <string name="bridge_go">Abrir tinfoil.sh</string>
+    <string name="about_title">Sobre o TinfoilAssist</string>
+    <string name="about_message">TinfoilAssist v1.4.5\n\nUm wrapper WebView endurecido para o Tinfoil Chat (chat.tinfoil.sh).\n\nRecursos de privacidade:\n• Spoofing de fuso horário (IANA-aware, DST-correct)\n• Spoofing de fingerprint de hardware (CPU, RAM, GPU)\n• Client Hints (UA-CH) alinhados com o UA\n• Bloqueio de WebRTC, sensores, bateria e geolocalização\n• Cobertura de vazamento via iframe.contentWindow\n• Whitelist de domínios + bloqueio de OAuth\n• Só HTTPS, DNT, User-Agent dual (mobile / desktop estilo Brave)\n\nAnti-fingerprint originalmente desenvolvido no testAssist (github.com/taboia872/testAssist), o projeto de referência da família. Também portado pro qwenAssist.\n\nEstrutura WebView original baseada em gptassist de @woheller69 e geminiAssist de @AcideFluorhydrique.\n\nA maior parte do código foi escrita por IA (GLM-5.2 e Kimi-K3) sob direção humana.\n\nLicença: GPL-3.0</string>
 </resources>
