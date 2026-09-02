@@ -70,7 +70,7 @@ Como os dois domínios compartilham o cookie de sessão do Clerk, o app faz uma 
 
 ### Outros mecanismos
 
-- **User-Agent spoofed**: UA fixo de desktop Chrome em Windows (`Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ... Chrome/137.0.0.0 Safari/537.36`) — o UA real mais comum do mundo, esconde que é mobile e não vaza a arquitetura do dispositivo (antes usava `os.arch`, que retornava `aarch64` e criava um fingerprint único e suspeito para provedores de auth)
+- **User-Agent dual + UA-CH alinhados**: modo mobile usa UA de Chrome Android 152 (`Linux; Android 10; K ... Mobile`) com Client Hints de Android; modo desktop usa UA estilo Brave (`X11; Linux x86_64 ... Chrome/152.0.0.0 Safari/537.36`) com Client Hints de Linux x86_64. Ambos os perfis aplicam `UserAgentMetadata` via `WebSettingsCompat.setUserAgentMetadata()`, impedindo contradição entre o header `User-Agent` e `Sec-CH-UA-*` / `navigator.userAgentData` — anti-bots modernos (Alibaba AWSC, Cloudflare) rejeitam sessões quando essas duas fontes divergem
 - **WebView Metrics Opt-Out**: `<meta-data android:name="android.webkit.WebView.MetricsOptOut" android:value="true" />` desativa telemetria do WebView do Google
 - **HTTPS only**: conexões não-HTTPS são bloqueadas por padrão
 - **Sandbox de dados**: `setDataDirectorySuffix("tinfoil_chat")` isola os dados do WebView do resto do sistema
@@ -168,13 +168,13 @@ Para compilar release (requer keystore):
 ./gradlew assembleRelease
 ```
 
-O APK de debug fica em `app/build/outputs/apk/debug/app-debug.apk`.
+O APK de debug fica em `app/build/outputs/apk/debug/TinfoilAssist-<versão>.apk`.
 
 ---
 
 ## 📝 Sobre o desenvolvimento
 
-Este projeto foi feito por **vibe coding** — a maior parte do código foi escrita por IA (com modelos como DeepSeek, Gemini e GLM) através de iteração conversacional. Mas a IA não fez tudo sozinha: cada decisão arquitetural, cada trade-off de segurança, cada correção de build e cada investigação de comportamento exigiu **direção e estratégia humana**. A IA era a mãos no teclado; o humano era o arquiteto.
+A maior parte do código foi escrita por **IA (GLM-5.2 e Kimi-K3)** através de iteração conversacional. Mas cada decisão arquitetural, cada trade-off de segurança, cada correção de build e cada investigação de comportamento exigiu **direção e estratégia humana**. A IA era a mãos no teclado; o humano era o arquiteto.
 
 O processo incluiu análise de projetos similares, engenharia reversa do comportamento de armazenamento do Tinfoil Chat (que se mostrou mais sutil do que parecia), e múltiplas iterações de build-quebrado-debug-push no GitHub Actions.
 
@@ -182,14 +182,19 @@ O processo incluiu análise de projetos similares, engenharia reversa do comport
 
 ## 🙏 Créditos e projetos base
 
-Este app é um fork adaptado de:
+Este app faz parte da família **xyzAssist**:
 
-- **[testAssist](https://github.com/taboia872/testAssist)** — laboratório de anti-fingerprinting de onde o `tzspoof.js`, `hardening.js` e o sistema de injeção `addDocumentStartJavaScript` foram portados
+- **[testAssist](https://github.com/taboia872/testAssist)** — projeto de referência e laboratório anti-fingerprinting. Todo o pipeline de hardening aqui (injeção `document_start`, `tzspoof.js`, `hardening.js`, iframe.contentWindow hook, Client Hints, dual UA) foi desenvolvido e validado lá primeiro.
+- **[qwenAssist](https://github.com/taboia872/qwenAssist)** — fork equivalente para o Qwen Chat, com adaptações específicas pro anti-bot AWSC/Baxia da Alibaba.
+- **[tinfoilAssist](https://github.com/taboia872/tinfoilAssist)** — este repositório.
+
+E é derivado dos projetos originais que inspiraram a família:
+
 - **[notme](https://github.com/deafenken/notme)** — implementação de referência para timezone spoofing IANA-aware e anti-fingerprinting
-- **[gptassist](https://github.com/woheller69/gptassist)** por [@woheller69](https://github.com/woheller69) — wrapper WebView para ChatGPT com boa base de privacidade
+- **[gptassist](https://github.com/woheller69/gptassist)** por [@woheller69](https://github.com/woheller69) — wrapper WebView para ChatGPT que forneceu a estrutura básica do WebView, whitelist de domínios, sandbox de dados e Settings dialog
 - **[geminiAssist](https://github.com/AcideFluorhydrique/geminiAssist)** por [@AcideFluorhydrique](https://github.com/AcideFluorhydrique) — wrapper WebView para Google Gemini
 
-Ambos inspiraram a estrutura básica do WebView, a whitelist de domínios, o sandbox de dados e o spoofing de User-Agent. O TinfoilAssist adiciona bloqueio de APIs de hardware, spoofing de timezone e fingerprint, e endurecimento adicional focado no Tinfoil Chat.
+A estrutura básica do WebView veio de gptassist/geminiAssist; o endurecimento moderno (bloqueio de APIs, spoofing de timezone, hardware fingerprint, Client Hints) foi empilhado em cima.
 
 ---
 
